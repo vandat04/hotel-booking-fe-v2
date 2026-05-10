@@ -125,7 +125,7 @@
             const list = document.getElementById('roomList');
             const infoLayer = document.getElementById('resultInfo');
             list.innerHTML = '<div class="loading">Đang tải phòng...</div>';
-            infoLayer.textContent = `Giá: ${formatPrice(minPrice)}đ - ${maxPrice >= 1000000 ? '1000+' : formatPrice(maxPrice)}đ`;
+            infoLayer.textContent = `Giá: ${formatPrice(minPrice)}đ - ${maxPrice >= 1000000000 ? '1000+' : formatPrice(maxPrice)}đ`;
 
             try {
                 const res = await fetch(`http://localhost:8080/hotel/room-types/search-by-day-price?minPrice=${minPrice}&maxPrice=${maxPrice}`);
