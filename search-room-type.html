@@ -111,14 +111,14 @@
 
         function getQueryParams() {
             const p = new URLSearchParams(window.location.search);
-            return { minPrice: p.get('minPrice') || '0', maxPrice: p.get('maxPrice') || '1000000' };
+            return { minPrice: p.get('minPrice') || '0', maxPrice: p.get('maxPrice') || '1000000000' };
         }
 
         function updateSliderLabel() {
             const range = document.getElementById('priceRange');
             const value = Number(range.value);
             document.getElementById('minLabel').textContent = '0';
-            document.getElementById('maxLabel').textContent = value >= 1000000 ? '1000+' : formatPrice(value);
+            document.getElementById('maxLabel').textContent = value >= 1000000000 ? '1000+' : formatPrice(value);
         }
 
         async function loadRooms(minPrice, maxPrice) {
@@ -195,7 +195,7 @@
             updateLoginButton();
             const { minPrice, maxPrice } = getQueryParams();
             const priceElem = document.getElementById('priceRange');
-            const parsedMax = Number(maxPrice) || 1000000;
+            const parsedMax = Number(maxPrice) || 1000000000;
             priceElem.value = parsedMax;
             updateSliderLabel();
             loadRooms(minPrice, maxPrice);
