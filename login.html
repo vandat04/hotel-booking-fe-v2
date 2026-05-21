@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng nhập - CheckinX</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         * {
             box-sizing: border-box;
@@ -381,7 +382,7 @@
         <div class="divider">HOẶC ĐĂNG NHẬP VỚI</div>
 
         <div class="social-group">
-            <a href="#" class="btn-social">
+            <a href="#" class="btn-social" id="googleLoginBtn">
                 <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/web-24dp/logo_googleg_color_24dp.png"
                     alt="Google">
                 <span>Google</span>
@@ -438,7 +439,7 @@
             }, 4000);
         }
 
-        // 3. Lắng nghe sự kiện Submit Form & Gọi Fetch API
+        // 3. Lắng nghe sự kiện Submit Form & Gọi Fetch API Đăng nhập thường
         document.getElementById('loginForm').addEventListener('submit', function (event) {
             event.preventDefault();
 
@@ -450,7 +451,9 @@
                 password: passwordValue
             };
 
-            fetch('http://localhost:8080/auth/login', {
+            showToast('Thông tin', 'Đang xác thực tài khoản...', 'success');
+
+            fetch('http://localhost:8080/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -458,89 +461,123 @@
                 body: JSON.stringify(formData)
             })
             .then(response => {
-                // Nếu thành công (status 200-299)
-                if (response.ok) {
-                    return response.json();
-                } 
-                // Nếu sai mật khẩu / tài khoản (thường là 401 hoặc 400) thì bóc tách lỗi từ server gửi về nếu có
-                return response.json().then(errData => {
-                    const errMsg = errData.message || 'Tài khoản hoặc mật khẩu không chính xác.';
-                    throw new Error(errMsg);
-                }).catch(() => {
-                    // Fallback phòng khi server không trả về cấu trúc JSON ở phản hồi lỗi
-                    throw new Error('Đăng nhập thất bại (Mã lỗi: ' + response.status + ')');
+                return response.json().then(data => {
+                    if (!response.ok || !data.success) {
+                        const errMsg = data.message || 'Tài khoản hoặc mật khẩu không chính xác.';
+                        throw new Error(errMsg);
+                    }
+                    return data.data; // Trả về đối tượng chứa { accessToken, refreshToken, user }
                 });
             })
             .then(data => {
                 showToast('Thành công', 'Đăng nhập vào hệ thống CheckinX thành công!', 'success');
-                console.log('CheckinX Auth: Phản hồi từ API login:', data);
-
-                const token = data.token || '';
-                if (token) {
-                    localStorage.setItem('token', token);
-                    console.log("CheckinX Auth: Đã lưu JWT Token vào localStorage.");
-                } else {
-                    console.warn("CheckinX Auth: Không nhận được token từ API login!");
-                }
-
-                // Chờ 1.5 giây để hiệu ứng Toast kịp chạy trước khi chuyển trang
-                setTimeout(() => {
-                    let userRole = '';
-
-                    if (token) {
-                        try {
-                            const base64Url = token.split('.')[1];
-                            // Giải mã an toàn hỗ trợ ký tự UTF-8 (tiếng Việt có dấu) tránh bị crash lỗi btoa/atob
-                            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                            }).join(''));
-
-                            const payloadObj = JSON.parse(jsonPayload);
-                            console.log("CheckinX Auth: Dữ liệu Payload sau khi giải mã:", payloadObj);
-
-                            userRole = payloadObj.role ? payloadObj.role.toUpperCase() : '';
-                        } catch (error) {
-                            console.error("CheckinX Auth: Lỗi trong quá trình giải mã JWT Token:", error);
-                        }
-                    }
-
-                    console.log("CheckinX Auth: Vai trò (Role) tìm thấy là:", userRole);
-
-                    let targetPage = 'customer-home.html';
-                    switch (userRole) {
-                        case 'CUSTOMER':
-                            targetPage = 'customer-home.html';
-                            break;
-                        case 'CLEANER':
-                            targetPage = 'cleaner-dashboard.html';
-                            break;
-                        case 'RECEPTIONIST':
-                            targetPage = 'receptionist-dashboard.html';
-                            break;
-                        case 'ADMIN':
-                            targetPage = 'admin-dashboard.html';
-                            break;
-                        default:
-                            console.warn(`CheckinX Auth: Không xác định được vai trò [${userRole}]. Chuyển về trang mặc định.`);
-                            targetPage = 'customer-home.html';
-                    }
-
-                    console.log(`CheckinX Auth: Đang chuyển hướng đến trang ứng với quyền: ${targetPage}`);
-                    window.location.href = `${targetPage}?token=${token}`;
-                }, 1500);
+                console.log('CheckinX Auth: Đăng nhập thành công, dữ liệu nhận về:', data);
+                
+                handleLoginSuccess(data);
             })
             .catch(error => {
-                // Phân loại lỗi: do kết nối (Network Error) hay lỗi do sai tài khoản từ khối .then() ném sang
                 let errorMessage = error.message;
                 if (error.message.includes('Failed to fetch')) {
                     errorMessage = 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại server Spring Boot!';
                 }
-                
                 showToast('Thất bại', errorMessage, 'error');
                 console.error('Lỗi đăng nhập:', error);
             });
         });
+
+        // 4. Hàm xử lý lưu token và chuyển hướng sau khi đăng nhập thành công
+        function handleLoginSuccess(authData) {
+            const accessToken = authData.accessToken || '';
+            const refreshToken = authData.refreshToken || '';
+            const user = authData.user || {};
+
+            if (accessToken) {
+                // Lưu trữ các token vào localStorage để các trang khác tái sử dụng
+                localStorage.setItem('token', accessToken);
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshToken);
+                console.log("CheckinX Auth: Đã lưu JWT Token và Refresh Token vào localStorage.");
+            } else {
+                console.warn("CheckinX Auth: Không nhận được accessToken từ API login!");
+            }
+
+            // Chờ 1.5 giây để hiệu ứng Toast kịp chạy trước khi chuyển trang
+            setTimeout(() => {
+                const userRole = user.role ? user.role.toUpperCase() : '';
+                console.log("CheckinX Auth: Vai trò (Role) của người dùng là:", userRole);
+
+                let targetPage = 'customer-home.html';
+                switch (userRole) {
+                    case 'CUSTOMER':
+                        targetPage = 'customer-home.html';
+                        break;
+                    case 'CLEANER':
+                        targetPage = 'cleaner-dashboard.html';
+                        break;
+                    case 'RECEPTIONIST':
+                        targetPage = 'receptionist-dashboard.html';
+                        break;
+                    case 'ADMIN':
+                        targetPage = 'admin-dashboard.html';
+                        break;
+                    default:
+                        console.warn(`CheckinX Auth: Không xác định được vai trò [${userRole}]. Chuyển hướng về trang chủ mặc định.`);
+                        targetPage = 'customer-home.html';
+                }
+
+                console.log(`CheckinX Auth: Đang chuyển hướng đến: ${targetPage}`);
+                window.location.href = `${targetPage}?token=${accessToken}`;
+            }, 1500);
+        }
+
+        // 5. Cấu hình Google Identity Services (Google Sign-In)
+        window.onload = function () {
+            if (typeof google !== 'undefined') {
+                google.accounts.id.initialize({
+                    client_id: '508082987114-xxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com', // Thay bằng client id thực tế của bạn
+                    callback: handleCredentialResponse
+                });
+
+                // Lắng nghe nút bấm đăng nhập bằng Google
+                const googleBtn = document.getElementById('googleLoginBtn');
+                if (googleBtn) {
+                    googleBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        google.accounts.id.prompt(); // Kích hoạt popup đăng nhập Google One Tap
+                    });
+                }
+            } else {
+                console.warn("Google GSI script chưa được load thành công.");
+            }
+        };
+
+        // Hàm xử lý kết quả trả về từ Google
+        async function handleCredentialResponse(response) {
+            console.log("CheckinX Google Auth: Nhận được credential từ Google:", response.credential);
+            showToast('Thông tin', 'Đang xác thực bằng tài khoản Google...', 'success');
+
+            try {
+                const res = await fetch('http://localhost:8080/api/auth/google', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ idToken: response.credential })
+                });
+
+                const result = await res.json();
+                
+                if (res.ok && result.success && result.data) {
+                    showToast('Thành công', 'Đăng nhập Google thành công!', 'success');
+                    handleLoginSuccess(result.data);
+                } else {
+                    showToast('Thất bại', result.message || 'Xác thực Google với hệ thống thất bại.', 'error');
+                }
+            } catch (err) {
+                console.error("Lỗi Google Sign-In:", err);
+                showToast('Thất bại', 'Không thể kết nối đến máy chủ để xác thực Google.', 'error');
+            }
+        }
     </script>
 </body>
 
