@@ -290,7 +290,7 @@
     </footer>
 
     <script>
-        const BASE_URL = 'http://localhost:8080';
+        const BASE_URL = 'http://localhost:8080/api';
 
         // Hàm định dạng giá tiền tệ sang dạng dễ đọc kiểu Việt Nam (e.g., 400.000đ)
         function formatMoney(amount) {
@@ -302,13 +302,22 @@
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            toast.className = `toast flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition min-w-[300px] bg-white ${type === 'success' ? 'text-emerald-800 border-emerald-100 bg-emerald-50' : 'text-red-800 border-red-100 bg-red-50'
-                }`;
+            
+            let bgClass = 'text-emerald-800 border-emerald-100 bg-emerald-50';
+            let icon = '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>';
+            
+            if (type === 'info') {
+                bgClass = 'text-blue-800 border-blue-100 bg-blue-50';
+                icon = '<i class="fa-solid fa-circle-info text-blue-500 text-lg"></i>';
+            } else if (type === 'error') {
+                bgClass = 'text-red-800 border-red-100 bg-red-50';
+                icon = '<i class="fa-solid fa-circle-xmark text-red-500 text-lg"></i>';
+            } else if (type === 'warning') {
+                bgClass = 'text-amber-800 border-amber-100 bg-amber-50';
+                icon = '<i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>';
+            }
 
-            const icon = type === 'success'
-                ? '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>'
-                : '<i class="fa-solid fa-circle-xmark text-red-500 text-lg"></i>';
-
+            toast.className = `toast flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition min-w-[300px] bg-white ${bgClass}`;
             toast.innerHTML = `${icon} <span class="flex-1">${message}</span>`;
             container.appendChild(toast);
 
@@ -358,8 +367,9 @@
                 console.log("CheckinX Auth: Phản hồi từ API /customer/me - Status:", response.status, response.statusText);
 
                 if (response.ok) {
-                    // Nếu trả về 200 OK -> Đã đăng nhập, bóc tách JSON mẫu
-                    const user = await response.json();
+                    const result = await response.json();
+                    // Hỗ trợ phòng thủ cả hai định dạng: trực tiếp hoặc bọc trong data
+                    const user = result.data || result;
                     console.log("CheckinX Auth: Đã tải thông tin user thành công:", user);
                     
                     const avatarSrc = user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
@@ -377,10 +387,6 @@
                     `;
                 } else {
                     console.error("CheckinX Auth: API trả về lỗi (không phải 2xx). Status:", response.status);
-                    try {
-                        const errBody = await response.text();
-                        console.error("CheckinX Auth: Chi tiết nội dung lỗi từ server:", errBody);
-                    } catch (e) {}
                     renderLoginButton();
                 }
             } catch (error) {
@@ -403,7 +409,9 @@
             try {
                 const response = await fetch(`${BASE_URL}/hotel`);
                 if (!response.ok) throw new Error('Không lấy được thông tin khách sạn');
-                const hotel = await response.json();
+                const result = await response.json();
+                const hotel = result.data;
+                if (!hotel) throw new Error('Không tìm thấy dữ liệu khách sạn trong data');
 
                 document.getElementById('hotel-name').innerText = hotel.name;
                 document.getElementById('hotel-address').innerHTML = `<i class="fa-solid fa-location-dot text-primary mr-1"></i> ${hotel.address}`;
@@ -437,29 +445,48 @@
         async function fetchRoomTypes() {
             const roomsContainer = document.getElementById('featured-rooms');
             try {
-                const response = await fetch(`${BASE_URL}/hotel/room-types`);
+                const response = await fetch(`${BASE_URL}/hotel/room-types?page=0&size=6`);
                 if (!response.ok) throw new Error('Không thể tải danh sách phòng');
 
-                const data = await response.json();
-                // Vì API bọc dữ liệu mảng phòng bên trong thuộc tính "content" của Pageable
-                const roomList = data.content || [];
+                const result = await response.json();
+                const pageData = result.data || {};
+                const roomList = pageData.content || [];
 
-                if (roomList.length === 0) {
-                    roomsContainer.innerHTML = `
-                        <div class="col-span-3 text-center py-12 text-gray-400 text-sm">
-                            <i class="fa-solid fa-bed text-3xl mb-2 block"></i> Hiện tại khách sạn hết phòng trống.
-                        </div>`;
-                    return;
-                }
+                renderRoomCards(roomList);
+            } catch (err) {
+                console.error(err);
+                roomsContainer.innerHTML = `
+                    <div class="col-span-3 text-center py-12 text-red-500 text-sm font-medium bg-red-50/50 rounded-2xl border border-red-100">
+                        <i class="fa-solid fa-circle-exclamation text-xl mb-1.5 block"></i> Không thể kết nối hoặc lấy danh sách phòng từ API Server!
+                    </div>`;
+            }
+        }
 
-                // Render dữ liệu phòng động ra màn hình dạng thẻ Card giao diện đẹp mắt
-                roomsContainer.innerHTML = roomList.map(room => `
+        // Hàm render danh sách thẻ loại phòng động lên giao diện
+        function renderRoomCards(roomList) {
+            const roomsContainer = document.getElementById('featured-rooms');
+            
+            if (!roomList || roomList.length === 0) {
+                roomsContainer.innerHTML = `
+                    <div class="col-span-3 text-center py-12 text-gray-400 text-sm">
+                        <i class="fa-solid fa-bed text-3xl mb-2 block"></i> Hiện tại khách sạn hết phòng trống hoặc không có phòng phù hợp.
+                    </div>`;
+                return;
+            }
+
+            roomsContainer.innerHTML = roomList.map(room => {
+                const roomName = room.roomTypeName || room.name || 'Loại phòng';
+                const roomId = room.roomTypeId || room.id || 0;
+                const thumbnail = room.thumbnail || room.thumbnailUrl || 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80';
+                const description = room.description || 'Không gian nghỉ dưỡng lý tưởng được trang bị đầy đủ tiện nghi hiện đại và cao cấp.';
+
+                return `
                     <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
                         <!-- Vùng ảnh phòng -->
                         <div class="relative h-48 bg-gray-100 overflow-hidden">
-                            <img src="${room.thumbnail}" alt="${room.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80'">
+                            <img src="${thumbnail}" alt="${roomName}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80'">
                             <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-primary font-bold text-xs px-2.5 py-1 rounded-lg border border-purple-100 shadow-sm uppercase tracking-wide">
-                                ${room.name}
+                                ${roomName}
                             </span>
                         </div>
                         
@@ -472,7 +499,7 @@
                                     <span><i class="fa-solid fa-user-group text-primary/70 mr-1"></i>Tối đa ${room.maxAdults} Lớn</span>
                                 </div>
                                 <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">
-                                    ${room.description}
+                                    ${description}
                                 </p>
                             </div>
 
@@ -489,55 +516,42 @@
                             </div>
 
                             <!-- Hành động chọn đặt phòng -->
-                            <button onclick="bookRoom(${room.id}, '${room.name}')" class="w-full bg-gray-900 hover:bg-primary text-white text-xs font-semibold py-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-1">
+                            <button onclick="bookRoom(${roomId})" class="w-full bg-gray-900 hover:bg-primary text-white text-xs font-semibold py-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-1">
                                 Đặt phòng ngay <i class="fa-solid fa-arrow-right text-[10px]"></i>
                             </button>
                         </div>
                     </div>
-                `).join('');
-
-            } catch (err) {
-                console.error(err);
-                roomsContainer.innerHTML = `
-                    <div class="col-span-3 text-center py-12 text-red-500 text-sm font-medium bg-red-50/50 rounded-2xl border border-red-100">
-                        <i class="fa-solid fa-circle-exclamation text-xl mb-1.5 block"></i> Không thể kết nối hoặc lấy danh sách phòng từ API Server!
-                    </div>`;
-            }
+                `;
+            }).join('');
         }
 
-        // Hàm giả lập hành động đặt phòng khi nhấn nút
-        function bookRoom(roomId, roomName) {
-            showToast(`Bạn chọn đặt loại phòng ${roomName} (ID: ${roomId}). Đang chuyển hướng xử lý thanh toán...`, "success");
+        // Điều hướng sang chi tiết phòng
+        function bookRoom(roomId) {
+            window.location.href = `room-type-detail.html?roomTypeId=${roomId}`;
         }
 
-        // --- 4. TÌM KIẾM PHÒNG (POST /hotel/search-room-types) ---
-        document.getElementById('search-room-form').addEventListener('submit', async function (e) {
+        // --- 4. TÌM KIẾM PHÒNG (Chuyển hướng sang trang search.html với các tham số bộ lọc) ---
+        document.getElementById('search-room-form').addEventListener('submit', function (e) {
             e.preventDefault();
 
-            const payload = {
-                "bookingType": document.getElementById('search-booking-type').value,
-                "minPrice": parseInt(document.getElementById('search-min-price').value) || 0,
-                "maxPrice": parseInt(document.getElementById('search-max-price').value) || 0,
-                "adults": parseInt(document.getElementById('search-adults').value) || 1
-            };
+            const bookingType = document.getElementById('search-booking-type').value;
+            const minPrice = document.getElementById('search-min-price').value;
+            const maxPrice = document.getElementById('search-max-price').value;
+            const adults = document.getElementById('search-adults').value;
 
-            try {
-                const response = await fetch(`${BASE_URL}/hotel/search-room-types`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+            // Xây dựng danh sách tham số lọc dạng Query Parameters để truyền qua URL
+            const params = new URLSearchParams({
+                bookingType: bookingType,
+                adults: adults,
+                page: 0,
+                size: 6
+            });
+            
+            if (minPrice) params.append('minPrice', minPrice);
+            if (maxPrice) params.append('maxPrice', maxPrice);
 
-                if (response.ok) {
-                    showToast("Lọc tìm kiếm thành công!", "success");
-                    const result = await response.json();
-                    console.log("Dữ liệu lọc phòng nhận về từ Server: ", result);
-                } else {
-                    showToast(`Tìm kiếm thất bại! Mã lỗi: ${response.status}`, "error");
-                }
-            } catch (err) {
-                showToast("Lỗi kết nối API Server khi tìm kiếm!", "error");
-            }
+            // Chuyển hướng sang trang search.html kèm tham số
+            window.location.href = `search.html?${params.toString()}`;
         });
 
         // --- KHỞI CHẠY KHI TẢI TRANG ---
