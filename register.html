@@ -288,7 +288,7 @@
             };
 
             try {
-                const response = await fetch('http://localhost:8080/auth/register', {
+                const response = await fetch('http://localhost:8080/api/auth/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -297,16 +297,31 @@
                 });
 
                 let result = {};
-                try { result = await response.json(); } catch(e) {}
+                try { 
+                    result = await response.json(); 
+                } catch(e) {
+                    console.error("Parse JSON error:", e);
+                }
 
-                if (response.ok) {
-                    showToast('🎉 Đăng ký thành công tài khoản!', 'success');
+                if (response.ok && result.success) {
+                    showToast('🎉 Đăng ký thành công tài khoản! Đang chuyển hướng...', 'success');
                     this.reset();
                     
-                    // Bạn có thể thêm lệnh chuyển hướng tự động tới trang login sau khi đăng ký thành công nếu muốn:
-                    // setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                    // Tự động chuyển hướng tới trang login sau khi đăng ký thành công
+                    setTimeout(() => { 
+                        window.location.href = 'login.html'; 
+                    }, 2000);
                 } else {
-                    showToast(`❌ Thất bại: ${result.message || 'Vui lòng kiểm tra lại thông tin.'}`, 'error');
+                    // Xử lý hiển thị chi tiết lỗi validation từ Backend trả về
+                    if (result.errors && typeof result.errors === 'object') {
+                        const errorList = Object.entries(result.errors)
+                            .map(([field, msg]) => `• ${field}: ${msg}`)
+                            .join('<br>');
+                        
+                        showToast(`❌ Lỗi nhập liệu:<br>${errorList}`, 'error');
+                    } else {
+                        showToast(`❌ Thất bại: ${result.message || 'Vui lòng kiểm tra lại thông tin.'}`, 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
