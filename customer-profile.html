@@ -75,10 +75,27 @@
             </div>
 
             <div class="flex items-center gap-4">
-                <button class="text-gray-500 hover:text-primary relative transition-colors">
-                    <i class="fa-regular fa-bell text-xl"></i>
-                    <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                <!-- Notification Bell Container -->
+                <div class="relative">
+                    <button id="notification-btn" class="text-gray-500 hover:text-primary relative transition-colors focus:outline-none py-1">
+                        <i class="fa-regular fa-bell text-xl"></i>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full hidden"></span>
+                    </button>
+                    
+                    <!-- Notification Dropdown -->
+                    <div id="notification-dropdown" class="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-100 hidden z-50 overflow-hidden">
+                        <div class="p-4 border-b border-gray-50 flex items-center justify-between">
+                            <h4 class="font-extrabold text-gray-900 text-sm tracking-tight flex items-center gap-1.5">
+                                <i class="fa-solid fa-bell text-primary"></i> Thông báo của bạn
+                            </h4>
+                            <span id="unread-count-text" class="text-[10px] bg-purple-100 text-primary font-bold px-2 py-0.5 rounded-full uppercase">0 mới</span>
+                        </div>
+                        <div id="notification-list" class="max-h-[360px] overflow-y-auto divide-y divide-gray-50 scrollbar-thin">
+                            <!-- Render danh sách động -->
+                        </div>
+                    </div>
+                </div>
+
 
                 <div id="auth-zone" class="flex items-center pl-2">
                     <div class="animate-pulse bg-gray-200 h-8 w-8 rounded-full"></div>
@@ -99,6 +116,9 @@
             </button>
             <button id="tab-link-payments" class="pb-2 transition-all flex items-center gap-1.5 font-medium hover:text-primary focus:outline-none">
                 <i class="fa-solid fa-credit-card text-xs"></i> Lịch sử thanh toán
+            </button>
+            <button id="tab-link-password" class="pb-2 transition-all flex items-center gap-1.5 font-medium hover:text-primary focus:outline-none">
+                <i class="fa-solid fa-key text-xs"></i> Đổi mật khẩu
             </button>
         </div>
 
@@ -203,8 +223,8 @@
                                 <div class="relative">
                                     <select id="gender" name="gender"
                                         class="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white transition-all appearance-none cursor-pointer">
-                                        <option value="MALE">Nam (MALE)</option>
-                                        <option value="FEMALE">Nữ (FEMALE)</option>
+                                        <option value="MALE">Nam</option>
+                                        <option value="FEMALE">Nữ</option>
                                     </select>
                                     <i class="fa-solid fa-venus-mars absolute left-3 top-3.5 text-gray-400 text-xs pointer-events-none"></i>
                                     <i class="fa-solid fa-chevron-down absolute right-3.5 top-4 text-gray-400 text-[10px] pointer-events-none"></i>
@@ -246,25 +266,25 @@
                     <!-- Thanh trạng thái lọc (Status Filter Tab Bar) -->
                     <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent -mx-6 px-6">
                         <button onclick="filterBookingsByStatus('PENDING')" id="btn-status-PENDING" class="booking-status-tab whitespace-nowrap text-xs font-bold px-4 py-2 rounded-xl transition duration-200 bg-primary/10 text-primary border border-primary/20">
-                            Chờ thanh toán (PENDING)
+                            Chờ thanh toán
                         </button>
                         <button onclick="filterBookingsByStatus('CONFIRMED')" id="btn-status-CONFIRMED" class="booking-status-tab whitespace-nowrap text-xs font-semibold px-4 py-2 rounded-xl transition duration-200 bg-gray-50 text-gray-500 border border-gray-100 hover:bg-gray-100">
-                            Đã xác nhận (CONFIRMED)
+                            Đã xác nhận
                         </button>
                         <button onclick="filterBookingsByStatus('CHECKED_IN')" id="btn-status-CHECKED_IN" class="booking-status-tab whitespace-nowrap text-xs font-semibold px-4 py-2 rounded-xl transition duration-200 bg-gray-50 text-gray-500 border border-gray-100 hover:bg-gray-100">
-                            Đã nhận phòng (CHECKED_IN)
+                            Đã nhận phòng
                         </button>
                         <button onclick="filterBookingsByStatus('CHECKED_DAMAGE_ROOM')" id="btn-status-CHECKED_DAMAGE_ROOM" class="booking-status-tab whitespace-nowrap text-xs font-semibold px-4 py-2 rounded-xl transition duration-200 bg-gray-50 text-gray-500 border border-gray-100 hover:bg-gray-100">
-                            Đang kiểm phòng (CHECKED_DAMAGE_ROOM)
+                            Đang kiểm phòng
                         </button>
                         <button onclick="filterBookingsByStatus('CHECKED_OUT')" id="btn-status-CHECKED_OUT" class="booking-status-tab whitespace-nowrap text-xs font-semibold px-4 py-2 rounded-xl transition duration-200 bg-gray-50 text-gray-500 border border-gray-100 hover:bg-gray-100">
-                            Đã trả phòng (CHECKED_OUT)
+                            Đã trả phòng
                         </button>
                         <button onclick="filterBookingsByStatus('CANCELLED')" id="btn-status-CANCELLED" class="booking-status-tab whitespace-nowrap text-xs font-semibold px-4 py-2 rounded-xl transition duration-200 bg-gray-50 text-gray-500 border border-gray-100 hover:bg-gray-100">
-                            Đã hủy (CANCELLED)
+                            Đã hủy
                         </button>
                         <button onclick="filterBookingsByStatus('NO_SHOW')" id="btn-status-NO_SHOW" class="booking-status-tab whitespace-nowrap text-xs font-semibold px-4 py-2 rounded-xl transition duration-200 bg-gray-50 text-gray-500 border border-gray-100 hover:bg-gray-100">
-                            Vắng mặt (NO_SHOW)
+                            Vắng mặt
                         </button>
                     </div>
 
@@ -283,6 +303,60 @@
                     <div id="payments-list-container" class="space-y-4 min-h-[200px] flex flex-col justify-center">
                         <!-- Sẽ hiển thị động các giao dịch hoặc bookings đã thanh toán -->
                     </div>
+                </div>
+
+                <!-- Section 4: Đổi Mật Khẩu -->
+                <div id="password-section" class="hidden bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-6">
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-50">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-key text-primary"></i> Thay đổi mật khẩu tài khoản
+                        </h3>
+                    </div>
+                    
+                    <form id="changePasswordForm" class="space-y-4 max-w-md">
+                        <div class="flex flex-col gap-4">
+                            <!-- Mật khẩu hiện tại -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Mật khẩu hiện tại</label>
+                                <div class="relative">
+                                    <input type="password" id="oldPassword" name="oldPassword" required
+                                        class="w-full border border-gray-200 rounded-xl pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                    <i class="fa-solid fa-lock absolute left-3 top-3.5 text-gray-400 text-xs"></i>
+                                    <i class="fa-regular fa-eye absolute right-3 top-3.5 text-gray-400 hover:text-primary cursor-pointer text-xs" onclick="toggleFieldVisibility('oldPassword', this)"></i>
+                                </div>
+                            </div>
+
+                            <!-- Mật khẩu mới -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Mật khẩu mới</label>
+                                <div class="relative">
+                                    <input type="password" id="newPassword" name="newPassword" required
+                                        class="w-full border border-gray-200 rounded-xl pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                    <i class="fa-solid fa-key absolute left-3 top-3.5 text-gray-400 text-xs"></i>
+                                    <i class="fa-regular fa-eye absolute right-3 top-3.5 text-gray-400 hover:text-primary cursor-pointer text-xs" onclick="toggleFieldVisibility('newPassword', this)"></i>
+                                </div>
+                            </div>
+
+                            <!-- Xác nhận mật khẩu mới -->
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Xác nhận mật khẩu mới</label>
+                                <div class="relative">
+                                    <input type="password" id="confirmPassword" name="confirmPassword" required
+                                        class="w-full border border-gray-200 rounded-xl pl-9 pr-9 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                                    <i class="fa-solid fa-check-double absolute left-3 top-3.5 text-gray-400 text-xs"></i>
+                                    <i class="fa-regular fa-eye absolute right-3 top-3.5 text-gray-400 hover:text-primary cursor-pointer text-xs" onclick="toggleFieldVisibility('confirmPassword', this)"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nút xác nhận đổi mật khẩu -->
+                        <div class="flex justify-end pt-2">
+                            <button type="submit"
+                                class="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-6 py-3 rounded-xl shadow-md transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-shield-halved"></i> Cập nhật mật khẩu mới
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -374,6 +448,206 @@
                 toast.style.transform = 'scale(0.9)';
                 setTimeout(() => toast.remove(), 300);
             }, 4000);
+        }
+
+        // Hiển thị hộp thoại xác nhận tùy biến (Custom Confirm Modal)
+        function showConfirmModal(title, message, onConfirm, confirmText = 'Đồng ý', cancelText = 'Hủy bỏ') {
+            const modalId = 'custom-confirm-modal';
+            const existing = document.getElementById(modalId);
+            if (existing) existing.remove();
+
+            const html = `
+                <div id="${modalId}" class="fixed inset-0 z-[100000] flex items-center justify-center p-4 transition-all duration-300">
+                    <div class="fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
+                    <div class="bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 max-w-sm w-full relative z-10 transform scale-95 opacity-0 transition-all duration-300 ease-out" id="${modalId}-content">
+                        <div class="flex items-start gap-4 mb-4">
+                            <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
+                                <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-1">${title}</h4>
+                                <p class="text-xs text-gray-500 leading-relaxed">${message}</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2.5 mt-6">
+                            <button id="${modalId}-cancel" class="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition duration-200 cursor-pointer">
+                                ${cancelText}
+                            </button>
+                            <button id="${modalId}-confirm" class="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/95 text-xs font-semibold text-white transition duration-200 shadow-md shadow-primary/10 cursor-pointer">
+                                ${confirmText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', html);
+            const modal = document.getElementById(modalId);
+            const content = document.getElementById(`${modalId}-content`);
+
+            // Animate in
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            const closeModal = () => {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+            };
+
+            modal.querySelector('.bg-black\\/40').addEventListener('click', closeModal);
+            document.getElementById(`${modalId}-cancel`).addEventListener('click', closeModal);
+            document.getElementById(`${modalId}-confirm`).addEventListener('click', () => {
+                closeModal();
+                if (typeof onConfirm === 'function') {
+                    onConfirm();
+                }
+            });
+        }
+
+        // Hiển thị hộp thoại Đánh giá Trải nghiệm (Custom Review Modal)
+        function openReviewModal(bookingId) {
+            const modalId = 'custom-review-modal';
+            const existing = document.getElementById(modalId);
+            if (existing) existing.remove();
+
+            let selectedRating = 5;
+
+            const html = `
+                <div id="${modalId}" class="fixed inset-0 z-[100000] flex items-center justify-center p-4 transition-all duration-300">
+                    <div class="fixed inset-0 bg-black/40 backdrop-blur-sm"></div>
+                    <div class="bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 max-w-sm w-full relative z-10 transform scale-95 opacity-0 transition-all duration-300 ease-out" id="${modalId}-content">
+                        
+                        <!-- Close Button -->
+                        <button id="${modalId}-close" class="absolute right-4 top-4 w-7 h-7 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition flex items-center justify-center cursor-pointer border-0">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+
+                        <!-- Title -->
+                        <div class="text-center mb-6">
+                            <div class="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 mx-auto mb-3">
+                                <i class="fa-solid fa-star text-lg"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-gray-800 uppercase tracking-wider">Đánh giá trải nghiệm</h4>
+                            <p class="text-[11px] text-gray-400 mt-1">Cảm ơn bạn đã lựa chọn CheckinX. Hãy chia sẻ trải nghiệm của bạn!</p>
+                        </div>
+
+                        <!-- Star Selection -->
+                        <div class="flex items-center justify-center gap-3 mb-6">
+                            <i class="fa-solid fa-star text-2xl cursor-pointer text-amber-400 transition hover:scale-110 star-btn" data-value="1"></i>
+                            <i class="fa-solid fa-star text-2xl cursor-pointer text-amber-400 transition hover:scale-110 star-btn" data-value="2"></i>
+                            <i class="fa-solid fa-star text-2xl cursor-pointer text-amber-400 transition hover:scale-110 star-btn" data-value="3"></i>
+                            <i class="fa-solid fa-star text-2xl cursor-pointer text-amber-400 transition hover:scale-110 star-btn" data-value="4"></i>
+                            <i class="fa-solid fa-star text-2xl cursor-pointer text-amber-400 transition hover:scale-110 star-btn" data-value="5"></i>
+                        </div>
+
+                        <!-- Comment Input -->
+                        <div class="mb-5">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Bình luận & Ý kiến đóng góp</label>
+                            <textarea id="${modalId}-comment" placeholder="Phòng ốc sạch sẽ, phục vụ chu đáo..." 
+                                class="w-full border border-gray-200 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none h-24"></textarea>
+                        </div>
+
+                        <!-- Actions -->
+                        <button id="${modalId}-submit" class="w-full bg-primary hover:bg-primary/95 text-xs font-bold py-3 rounded-xl shadow-lg shadow-primary/10 text-white transition duration-200 flex items-center justify-center gap-2 cursor-pointer border-0">
+                            <i class="fa-solid fa-paper-plane"></i> Gửi đánh giá
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', html);
+            const modal = document.getElementById(modalId);
+            const content = document.getElementById(`${modalId}-content`);
+            const starBtns = modal.querySelectorAll('.star-btn');
+            const commentInput = document.getElementById(`${modalId}-comment`);
+            const submitBtn = document.getElementById(`${modalId}-submit`);
+
+            // Animate in
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            const closeModal = () => {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    modal.remove();
+                }, 300);
+            };
+
+            // Close listeners
+            modal.querySelector('.bg-black\\/40').addEventListener('click', closeModal);
+            document.getElementById(`${modalId}-close`).addEventListener('click', closeModal);
+
+            // Interactive Stars logic
+            const updateStars = (val) => {
+                selectedRating = val;
+                starBtns.forEach(btn => {
+                    const btnVal = parseInt(btn.getAttribute('data-value'));
+                    if (btnVal <= val) {
+                        btn.className = 'fa-solid fa-star text-2xl cursor-pointer text-amber-400 transition hover:scale-110 star-btn';
+                    } else {
+                        btn.className = 'fa-regular fa-star text-2xl cursor-pointer text-gray-300 transition hover:scale-110 star-btn';
+                    }
+                });
+            };
+
+            starBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const val = parseInt(btn.getAttribute('data-value'));
+                    updateStars(val);
+                });
+            });
+
+            // Submit logic
+            submitBtn.addEventListener('click', async () => {
+                const comment = commentInput.value.trim();
+                if (!comment) {
+                    showToast("Vui lòng nhập nội dung đánh giá của bạn!", "warning");
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Đang gửi đánh giá...`;
+
+                try {
+                    const response = await fetch(`${BASE_URL}/customer/reviews`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            bookingId: bookingId,
+                            rating: selectedRating,
+                            comment: comment
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showToast("Cảm ơn bạn! Đánh giá đã được gửi thành công.", "success");
+                        closeModal();
+                        loadUserBookings(currentBookingFilterStatus);
+                    } else {
+                        showToast(result.message || "Gửi đánh giá thất bại!", "error");
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Gửi đánh giá`;
+                    }
+                } catch (error) {
+                    console.error("Lỗi khi gửi đánh giá:", error);
+                    showToast("Không thể kết nối máy chủ để gửi đánh giá!", "error");
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Gửi đánh giá`;
+                }
+            });
         }
 
         // Kiểm tra Token từ localStorage hoặc URL Query (phục vụ file://)
@@ -496,6 +770,63 @@
             } catch (error) {
                 console.error('Lỗi khi cập nhật:', error);
                 showToast('Không thể kết nối Server để cập nhật!', 'error');
+            }
+        });
+
+        // --- 2.1 ĐỔI MẬT KHẨU TÀI KHOẢN (PUT /customer/me/change-password) ---
+        function toggleFieldVisibility(fieldId, eyeIcon) {
+            const input = document.getElementById(fieldId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        document.getElementById('changePasswordForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const oldPassword = document.getElementById('oldPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                showToast('Mật khẩu mới và xác nhận mật khẩu không trùng khớp!', 'error');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showToast('Mật khẩu mới phải từ 6 ký tự trở lên!', 'warning');
+                return;
+            }
+
+            showToast('Đang gửi yêu cầu đổi mật khẩu...', 'info');
+
+            try {
+                const response = await fetch(`${BASE_URL}/customer/me/change-password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ oldPassword, newPassword, confirmPassword })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showToast('Đổi mật khẩu tài khoản thành công!', 'success');
+                    document.getElementById('changePasswordForm').reset();
+                } else {
+                    showToast(result.message || 'Mật khẩu cũ không chính xác hoặc cập nhật thất bại!', 'error');
+                }
+            } catch (error) {
+                console.error('Lỗi khi đổi mật khẩu:', error);
+                showToast('Không thể kết nối đến máy chủ để đổi mật khẩu!', 'error');
             }
         });
 
@@ -639,6 +970,10 @@
                 payments: {
                     button: document.getElementById('tab-link-payments'),
                     section: document.getElementById('payments-section')
+                },
+                password: {
+                    button: document.getElementById('tab-link-password'),
+                    section: document.getElementById('password-section')
                 }
             };
 
@@ -750,7 +1085,7 @@
                         statusBadge = `<span class="bg-emerald-50 text-emerald-600 border border-emerald-200/50 px-2.5 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>Đã xác nhận</span>`;
                         actionButtons = `
                             <button onclick="refundBooking(${booking.bookingId})" class="flex-1 border border-red-200 hover:bg-red-50 text-red-500 text-[11px] font-semibold py-2 px-3 rounded-lg transition duration-200 flex items-center justify-center gap-1.5 bg-white">
-                                <i class="fa-solid fa-arrow-rotate-left text-[10px]"></i> Yêu cầu hoàn tiền
+                                <i class="fa-solid fa-arrow-rotate-left text-[10px]"></i> Hủy yêu cầu
                             </button>
                             <button onclick="viewBookingDetail(${booking.bookingId})" class="border border-gray-200 hover:bg-gray-50 text-gray-600 text-[11px] font-semibold py-2 px-3 rounded-lg transition duration-200 flex items-center justify-center gap-1.5 bg-white">
                                 <i class="fa-solid fa-eye text-[10px]"></i> Chi tiết
@@ -775,9 +1110,9 @@
                     } else if (bookingStatus === 'CHECKED_OUT') {
                         statusBadge = `<span class="bg-blue-50 text-blue-600 border border-blue-200/50 px-2.5 py-0.5 rounded-lg font-bold text-[10px] uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>Đã trả phòng</span>`;
                         actionButtons = `
-                            <a href="search.html" class="flex-grow bg-primary hover:bg-primaryHover text-white text-[11px] font-bold py-2 px-3 rounded-lg transition duration-200 flex items-center justify-center gap-1.5 shadow-sm shadow-primary/10">
+                            <button onclick="openReviewModal(${booking.bookingId})" class="flex-grow bg-primary hover:bg-primaryHover text-white text-[11px] font-bold py-2 px-3 rounded-lg transition duration-200 flex items-center justify-center gap-1.5 shadow-sm shadow-primary/10 cursor-pointer">
                                 <i class="fa-solid fa-star text-[10px]"></i> Đánh giá trải nghiệm
-                            </a>
+                            </button>
                             <button onclick="viewBookingDetail(${booking.bookingId})" class="border border-gray-200 hover:bg-gray-50 text-gray-600 text-[11px] font-semibold py-2 px-3 rounded-lg transition duration-200 flex items-center justify-center gap-1.5 bg-white">
                                 <i class="fa-solid fa-eye text-[10px]"></i> Chi tiết
                             </button>
@@ -997,7 +1332,7 @@
                     paymentStatusHtml = `<span class="text-gray-500 font-bold">${booking.paymentStatus}</span>`;
                 }
                 
-                const bookingTypeStr = booking.bookingType === 'DAILY' ? 'Theo ngày (DAILY)' : 'Theo giờ (HOURLY)';
+                const bookingTypeStr = booking.bookingType === 'DAILY' ? 'Theo ngày' : 'Theo giờ';
                 const totalAmountStr = formatMoney(booking.totalAmount);
                 const notesStr = booking.notes || 'Không có ghi chú nào.';
                 const creationDate = formatDateTime(booking.createdAt);
@@ -1009,14 +1344,71 @@
                 let roomsListHtml = '';
                 if (booking.roomSchedules && booking.roomSchedules.length > 0) {
                     roomsListHtml = `
-                        <div class="space-y-2">
-                            <h5 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Phòng được phân bổ</h5>
-                            <div class="flex flex-wrap gap-2">
-                                ${booking.roomSchedules.map(sched => `
-                                    <span class="bg-purple-50 text-primary border border-purple-100 px-3 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5">
-                                        <i class="fa-solid fa-door-open text-[10px]"></i> Phòng ${sched.roomName || sched.roomId}
-                                    </span>
-                                `).join('')}
+                        <div class="space-y-3">
+                            <h5 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Thông tin phòng & Khóa kỹ thuật số</h5>
+                            <div class="grid grid-cols-1 gap-3">
+                                ${booking.roomSchedules.map(sched => {
+                                    const statusVal = sched.roomKeyStatus ? sched.roomKeyStatus.toUpperCase() : '';
+                                    let statusBadge = '';
+                                    if (statusVal === 'ACTIVE') {
+                                        statusBadge = '<span class="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-bold">HOẠT ĐỘNG</span>';
+                                    } else if (statusVal === 'EXPIRED') {
+                                        statusBadge = '<span class="bg-rose-50 text-rose-500 border border-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-bold">HẾT HẠN</span>';
+                                    } else if (statusVal) {
+                                        statusBadge = `<span class="bg-amber-50 text-amber-500 border border-amber-100 px-2 py-0.5 rounded-lg text-[10px] font-bold">${statusVal}</span>`;
+                                    } else {
+                                        statusBadge = '<span class="bg-gray-50 text-gray-400 border border-gray-100 px-2 py-0.5 rounded-lg text-[10px] font-bold">CHƯA KÍCH HOẠT</span>';
+                                    }
+
+                                    const codeNum = sched.codeNumber || 'Chưa được cấp';
+                                    const activatedStr = sched.activatedAt ? formatDateTime(sched.activatedAt) : 'Chưa kích hoạt';
+                                    const expiredStr = sched.expiredAt ? formatDateTime(sched.expiredAt) : 'Chưa xác định';
+
+                                    return `
+                                        <div class="bg-purple-50/30 border border-purple-100/50 rounded-2xl p-4 space-y-3 shadow-sm hover:shadow-md transition">
+                                            <div class="flex justify-between items-center">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                                        <i class="fa-solid fa-door-open text-sm"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="font-extrabold text-gray-900 text-sm">Phòng ${sched.roomNumber || 'Chưa rõ'}</h6>
+                                                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Tầng ${sched.floor !== undefined ? sched.floor : 'Chưa rõ'}</p>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    ${statusBadge}
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-3 pt-2.5 border-t border-purple-100/30 text-xs">
+                                                <div class="space-y-1">
+                                                    <span class="text-gray-400 text-[10px] font-bold uppercase tracking-wider block">Mã khóa (Key Code)</span>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <code class="bg-gray-100/80 px-2 py-0.5 rounded text-gray-700 font-mono text-[11px] font-bold tracking-wider">${codeNum}</code>
+                                                        ${sched.codeNumber ? `
+                                                            <button onclick="navigator.clipboard.writeText('${sched.codeNumber}'); showToast('Thành công', 'Đã sao chép mã khóa phòng!', 'success')" 
+                                                                    class="text-gray-400 hover:text-primary transition-colors text-[10px]" title="Sao chép">
+                                                                <i class="fa-solid fa-copy"></i>
+                                                            </button>
+                                                        ` : ''}
+                                                    </div>
+                                                </div>
+                                                <div class="space-y-0.5">
+                                                    <span class="text-gray-400 text-[10px] font-bold uppercase tracking-wider block">Kích hoạt lúc</span>
+                                                    <span class="text-gray-700 font-medium text-[11px]">${activatedStr}</span>
+                                                </div>
+                                                <div class="col-span-2 space-y-0.5">
+                                                    <span class="text-gray-400 text-[10px] font-bold uppercase tracking-wider block">Thời hạn sử dụng</span>
+                                                    <div class="flex items-center gap-1 text-gray-600 text-[11px]">
+                                                        <i class="fa-regular fa-clock text-gray-400 text-[10px]"></i>
+                                                        <span>${expiredStr}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
                             </div>
                         </div>
                     `;
@@ -1154,6 +1546,16 @@
                                 ${bs === 'PENDING' ? `
                                     <button onclick="document.getElementById('${modalId}').remove(); payVNPay(${booking.bookingId});" class="bg-primary hover:bg-primaryHover text-white text-xs font-bold px-5 py-2.5 rounded-xl transition duration-200 shadow-md shadow-primary/10 flex items-center gap-1.5">
                                         <i class="fa-solid fa-credit-card"></i> Thanh toán VNPay
+                                    </button>
+                                ` : ''}
+                                ${bs === 'CONFIRMED' ? `
+                                    <button onclick="document.getElementById('${modalId}').remove(); refundBooking(${booking.bookingId});" class="bg-red-50 hover:bg-red-100 border border-red-200 text-red-500 text-xs font-bold px-5 py-2.5 rounded-xl transition duration-200 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-arrow-rotate-left"></i> Hủy yêu cầu
+                                    </button>
+                                ` : ''}
+                                ${bs === 'CHECKED_OUT' ? `
+                                    <button onclick="document.getElementById('${modalId}').remove(); openReviewModal(${booking.bookingId});" class="bg-primary hover:bg-primaryHover text-white text-xs font-bold px-5 py-2.5 rounded-xl transition duration-200 shadow-md shadow-primary/10 flex items-center gap-1.5 cursor-pointer">
+                                        <i class="fa-solid fa-star"></i> Đánh giá trải nghiệm
                                     </button>
                                 ` : ''}
                             </div>
@@ -1304,10 +1706,9 @@
                 const data = result.data || result;
 
                 if (response.ok && data.paymentUrl) {
-                    showToast("Đang chuyển hướng sang cổng thanh toán...", "success");
-                    setTimeout(() => {
-                        window.location.href = data.paymentUrl;
-                    }, 1000);
+                    showToast("Thanh toán hóa đơn thành công!", "success");
+                    loadUserBookings(currentBookingFilterStatus);
+                    loadUserPayments();
                 } else {
                     showToast(data.message || "Tạo liên kết thanh toán VNPay thất bại!", "error");
                 }
@@ -1318,92 +1719,263 @@
         }
 
         async function cancelBooking(bookingId) {
-            if (!confirm("Bạn có chắc chắn muốn hủy đơn đặt phòng này không?")) {
-                return;
-            }
+            showConfirmModal(
+                "Xác nhận hủy đơn",
+                "Bạn có chắc chắn muốn hủy đơn đặt phòng này không?",
+                async function() {
+                    showToast("Đang thực hiện hủy đơn đặt phòng...", "info");
 
-            showToast("Đang thực hiện hủy đơn đặt phòng...", "info");
+                    try {
+                        const response = await fetch(`${BASE_URL}/customer/bookings/${bookingId}/cancel`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
 
-            try {
-                const response = await fetch(`${BASE_URL}/customer/bookings/${bookingId}/cancel`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            showToast("Đã hủy đơn đặt phòng thành công!", "success");
+                            loadUserBookings(currentBookingFilterStatus);
+                            loadUserPayments();
+                        } else {
+                            showToast(result.message || "Hủy đơn đặt phòng thất bại!", "error");
+                        }
+                    } catch (error) {
+                        console.error("Lỗi khi hủy đơn hàng:", error);
+                        showToast("Không thể kết nối máy chủ để hủy đơn!", "error");
                     }
-                });
-
-                const result = await response.json();
-                
-                if (response.ok) {
-                    showToast("Đã hủy đơn đặt phòng thành công!", "success");
-                    loadUserBookings(currentBookingFilterStatus);
-                    loadUserPayments();
-                } else {
-                    showToast(result.message || "Hủy đơn đặt phòng thất bại!", "error");
-                }
-            } catch (error) {
-                console.error("Lỗi khi hủy đơn hàng:", error);
-                showToast("Không thể kết nối máy chủ để hủy đơn!", "error");
-            }
+                },
+                "Hủy đơn đặt",
+                "Quay lại"
+            );
         }
 
         async function refundBooking(bookingId) {
-            if (!confirm("Bạn có chắc chắn muốn yêu cầu hoàn tiền cho đơn đặt phòng này không? Yêu cầu hoàn trả sẽ được nhân viên xem xét.")) {
-                return;
-            }
+            showConfirmModal(
+                "Yêu cầu hủy đơn",
+                "Bạn có chắc chắn muốn gửi yêu cầu hủy đơn đặt phòng này không? Nhân viên sẽ kiểm duyệt và hoàn tiền nếu hợp lệ.",
+                async function() {
+                    showToast("Đang gửi yêu cầu hủy...", "info");
 
-            showToast("Đang gửi yêu cầu hoàn tiền...", "info");
+                    try {
+                        const response = await fetch(`${BASE_URL}/customer/bookings/${bookingId}/refund`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
 
-            try {
-                const response = await fetch(`${BASE_URL}/customer/bookings/${bookingId}/refund`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            showToast("Gửi yêu cầu hủy thành công! Đang chờ duyệt hoàn tiền.", "success");
+                            loadUserBookings(currentBookingFilterStatus);
+                            loadUserPayments();
+                        } else {
+                            showToast(result.message || "Yêu cầu hủy thất bại!", "error");
+                        }
+                    } catch (error) {
+                        console.error("Lỗi khi gửi yêu cầu hủy:", error);
+                        showToast("Không thể kết nối máy chủ để gửi yêu cầu hủy!", "error");
                     }
-                });
+                },
+                "Gửi yêu cầu",
+                "Quay lại"
+            );
+        }
 
-                const result = await response.json();
+        // --- 5. HỆ THỐNG THÔNG BÁO (GET /customer/notifications) ---
+        function formatNotificationTime(isoStr) {
+            try {
+                const date = new Date(isoStr);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMins / 60);
                 
-                if (response.ok) {
-                    showToast("Yêu cầu hoàn tiền đã được gửi thành công!", "success");
-                    loadUserBookings(currentBookingFilterStatus);
-                    loadUserPayments();
-                } else {
-                    showToast(result.message || "Yêu cầu hoàn tiền thất bại!", "error");
-                }
-            } catch (error) {
-                console.error("Lỗi khi gửi yêu cầu hoàn tiền:", error);
-                showToast("Không thể kết nối máy chủ để gửi yêu cầu hoàn tiền!", "error");
+                if (diffMins < 1) return 'Vừa xong';
+                if (diffMins < 60) return `${diffMins} phút trước`;
+                if (diffHours < 24) return `${diffHours} giờ trước`;
+                
+                return date.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+            } catch (e) {
+                return isoStr;
             }
         }
 
+        async function updateNotificationBadge() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const response = await fetch(`${BASE_URL}/customer/notifications?page=0&size=20`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const res = await response.json();
+                    const content = res.data?.content || [];
+                    const unreads = content.filter(n => !n.isRead);
+                    const badge = document.getElementById('notification-badge');
+                    const unreadCountText = document.getElementById('unread-count-text');
+                    
+                    if (badge) {
+                        if (unreads.length > 0) {
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
+                        }
+                    }
+                    if (unreadCountText) {
+                        unreadCountText.innerText = `${unreads.length} mới`;
+                    }
+                }
+            } catch (err) {
+                console.error("Lỗi cập nhật badge thông báo:", err);
+            }
+        }
+
+        async function loadNotifications() {
+            const token = localStorage.getItem('token');
+            const list = document.getElementById('notification-list');
+            if (!list) return;
+
+            list.innerHTML = `
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${BASE_URL}/customer/notifications?page=0&size=15`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const res = await response.json();
+                    const content = res.data?.content || [];
+                    renderNotifications(content);
+                } else {
+                    list.innerHTML = `<div class="p-4 text-center text-xs text-gray-400">Không thể tải thông báo</div>`;
+                }
+            } catch (err) {
+                console.error("Lỗi tải danh sách thông báo:", err);
+                list.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Đã xảy ra lỗi kết nối</div>`;
+            }
+        }
+
+        function renderNotifications(items) {
+            const list = document.getElementById('notification-list');
+            if (!list) return;
+
+            if (!items || items.length === 0) {
+                list.innerHTML = `
+                    <div class="p-8 text-center text-gray-400 space-y-2">
+                        <i class="fa-regular fa-bell-slash text-3xl text-gray-200"></i>
+                        <p class="text-xs">Bạn chưa có thông báo nào</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = items.map(item => {
+                let icon = '<i class="fa-solid fa-circle-info text-blue-500"></i>';
+                if (item.notificationType?.includes('CONFIRMED') || item.notificationType?.includes('SUCCESS')) {
+                    icon = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+                } else if (item.notificationType?.includes('CANCEL') || item.notificationType?.includes('REFUND')) {
+                    icon = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+                }
+
+                const dateStr = item.createdAt ? formatNotificationTime(item.createdAt) : '';
+                const unreadBg = !item.isRead ? 'bg-purple-50/40 hover:bg-purple-50/80' : 'hover:bg-gray-50';
+                const unreadDot = !item.isRead ? '<span class="w-1.5 h-1.5 bg-purple-600 rounded-full self-start mt-1.5 flex-shrink-0"></span>' : '';
+
+                // Chuyển hướng khi click thông báo có bookingId
+                const clickAction = item.bookingId 
+                    ? `onclick="window.location.href='customer-profile.html?bookingId=${item.bookingId}'"`
+                    : '';
+
+                return `
+                    <div ${clickAction} class="p-4 flex items-start gap-3 cursor-pointer transition-colors duration-200 ${unreadBg}">
+                        <div class="text-base mt-0.5 flex-shrink-0">${icon}</div>
+                        <div class="flex-1 space-y-0.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <h5 class="text-xs font-bold text-gray-900 line-clamp-1">${item.title}</h5>
+                                ${unreadDot}
+                            </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed">${item.message}</p>
+                            <span class="text-[9px] text-gray-400 block pt-0.5">${dateStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function initNotificationSystem() {
+            const token = localStorage.getItem('token');
+            const dropdown = document.getElementById('notification-dropdown');
+            const btn = document.getElementById('notification-btn');
+
+            if (!token) return;
+
+            if (btn) {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                    if (!dropdown.classList.contains('hidden')) {
+                        loadNotifications();
+                    }
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                if (dropdown && !dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+
+            await updateNotificationBadge();
+        }
+
         // --- KHỞI CHẠY KHI TẢI TRANG ---
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             loadUserProfile();
 
             // Thiết lập sự kiện click cho các tab
             const tabLinks = {
                 profile: document.getElementById('tab-link-profile'),
                 bookings: document.getElementById('tab-link-bookings'),
-                payments: document.getElementById('tab-link-payments')
+                payments: document.getElementById('tab-link-payments'),
+                password: document.getElementById('tab-link-password')
             };
 
             if (tabLinks.profile) tabLinks.profile.addEventListener('click', () => switchTab('profile'));
             if (tabLinks.bookings) tabLinks.bookings.addEventListener('click', () => switchTab('bookings'));
             if (tabLinks.payments) tabLinks.payments.addEventListener('click', () => switchTab('payments'));
+            if (tabLinks.password) tabLinks.password.addEventListener('click', () => switchTab('password'));
 
             // Điều hướng tab thông minh dựa trên URL query param hoặc hash
             const urlParams = new URLSearchParams(window.location.search);
             const tabParam = urlParams.get('tab');
             const hashParam = window.location.hash;
+            const bookingIdParam = urlParams.get('bookingId');
 
-            if (tabParam === 'bookings' || hashParam === '#bookings') {
+            if (bookingIdParam) {
+                switchTab('bookings');
+                // Tải danh sách phòng xong rồi hiển thị chi tiết đặt phòng tương ứng
+                setTimeout(() => {
+                    viewBookingDetail(bookingIdParam);
+                }, 1000);
+            } else if (tabParam === 'bookings' || hashParam === '#bookings') {
                 switchTab('bookings');
             } else if (tabParam === 'payments' || hashParam === '#payments') {
                 switchTab('payments');
+            } else if (tabParam === 'password' || hashParam === '#password') {
+                switchTab('password');
             } else {
                 switchTab('profile');
             }
+
+            await initNotificationSystem();
         });
     </script>
 </body>

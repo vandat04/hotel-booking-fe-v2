@@ -496,6 +496,11 @@
                 localStorage.setItem('token', accessToken);
                 localStorage.setItem('accessToken', accessToken);
                 localStorage.setItem('refreshToken', refreshToken);
+
+                // Lưu thêm các key dành cho receptionist/admin dashboard
+                localStorage.setItem('checkinXToken', accessToken);
+                localStorage.setItem('checkinXRole', user.role ? user.role.toUpperCase() : '');
+                localStorage.setItem('checkinXUser', user.fullName || user.username || user.email || '');
                 console.log("CheckinX Auth: Đã lưu JWT Token và Refresh Token vào localStorage.");
             } else {
                 console.warn("CheckinX Auth: Không nhận được accessToken từ API login!");
