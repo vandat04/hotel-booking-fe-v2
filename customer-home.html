@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheckinX - Giải pháp đặt phòng 4.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5B30A6',
+                        primaryHover: '#4A238A',
+                        darkText: '#1F2937'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        #toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+        }
+
+        .toast {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+    <!-- Container chứa thông báo Toast -->
+    <div id="toast-container" class="flex flex-col gap-2"></div>
+
+    <!-- Header / Thanh điều hướng -->
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <div class="flex items-center gap-2 text-primary font-bold text-xl">
+                    <i class="fa-solid fa-square-poll-horizontal text-2xl"></i>
+                    <span>CheckinX</span>
+                </div>
+                <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+                    <a href="#" class="text-primary">Trang chủ</a>
+                    <a href="#" class="hover:text-primary">Phòng</a>
+                    <a href="#" class="hover:text-primary">Đặt phòng</a>
+                    <a href="#" class="hover:text-primary">Hỗ trợ</a>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="relative hidden sm:block">
+                    <input type="text" placeholder="Tìm kiếm..."
+                        class="bg-gray-100 rounded-full pl-4 pr-10 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary w-48">
+                    <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-gray-400 text-xs"></i>
+                </div>
+                <!-- Notification Bell Container -->
+                <div class="relative">
+                    <button id="notification-btn" class="text-gray-500 hover:text-primary relative transition-colors focus:outline-none py-1">
+                        <i class="fa-regular fa-bell text-xl"></i>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full hidden"></span>
+                    </button>
+                    
+                    <!-- Notification Dropdown -->
+                    <div id="notification-dropdown" class="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-100 hidden z-50 overflow-hidden">
+                        <div class="p-4 border-b border-gray-50 flex items-center justify-between">
+                            <h4 class="font-extrabold text-gray-900 text-sm tracking-tight flex items-center gap-1.5">
+                                <i class="fa-solid fa-bell text-primary"></i> Thông báo của bạn
+                            </h4>
+                            <span id="unread-count-text" class="text-[10px] bg-purple-100 text-primary font-bold px-2 py-0.5 rounded-full uppercase">0 mới</span>
+                        </div>
+                        <div id="notification-list" class="max-h-[360px] overflow-y-auto divide-y divide-gray-50 scrollbar-thin">
+                            <!-- Render danh sách động -->
+                        </div>
+                    </div>
+                </div>
+
+
+                <div id="auth-zone" class="flex items-center pl-2">
+                    <div class="animate-pulse bg-gray-200 h-8 w-8 rounded-full"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8">
+
+        <!-- Hero Section: Thông tin khách sạn & Form tìm kiếm nhanh -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center mb-16">
+            <div class="lg:col-span-6 space-y-6">
+                <span
+                    class="bg-purple-100 text-primary text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Giải
+                    pháp đặt phòng 4.0</span>
+                <h1 id="hotel-name" class="text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight">Đang tải dữ
+                    liệu...</h1>
+                <p id="hotel-address" class="text-gray-500 text-sm"><i
+                        class="fa-solid fa-location-dot text-primary mr-1"></i> Đang tải địa chỉ...</p>
+                <p class="text-gray-600 leading-relaxed text-sm">Check-in tự động, thao tác nhanh gọn và tận hưởng kỳ
+                    nghỉ theo cách tiện lợi nhất.</p>
+
+                <form id="search-room-form" class="bg-white p-5 rounded-2xl shadow-xl border border-gray-100 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Loại hình
+                                đặt</label>
+                            <select id="search-booking-type"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                                <option value="DAILY">Theo ngày</option>
+                                <option value="HOURLY">Theo giờ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Số người lớn</label>
+                            <input type="number" id="search-adults" value="2" min="1"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Ngày Check-in</label>
+                            <input type="datetime-local" id="search-checkin"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary text-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Ngày Check-out</label>
+                            <input type="datetime-local" id="search-checkout"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary text-gray-700">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Giá tối thiểu
+                                (đồng)</label>
+                            <input type="number" id="search-min-price" value="300000" step="50000"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Giá tối đa
+                                (đồng)</label>
+                            <input type="number" id="search-max-price" value="1500000" step="50000"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary">
+                        </div>
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-primary hover:bg-primaryHover text-white font-medium py-2.5 rounded-lg transition text-sm">
+                        Tìm phòng ngay
+                    </button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-6 relative">
+                <div class="rounded-3xl overflow-hidden shadow-2xl h-[350px] lg:h-[420px] bg-gray-200">
+                    <img id="hotel-primary-img" src="" alt="Hotel main image"
+                        class="w-full h-full object-cover opacity-0 transition-opacity duration-300">
+                </div>
+                <div
+                    class="absolute bottom-6 left-6 bg-white/95 backdrop-blur-sm py-2 px-4 rounded-xl shadow-lg flex items-center gap-3 border border-white/50">
+                    <div class="flex -space-x-2">
+                        <div class="w-7 h-7 rounded-full bg-gray-300 border-2 border-white"></div>
+                        <div class="w-7 h-7 rounded-full bg-gray-400 border-2 border-white"></div>
+                        <div class="w-7 h-7 rounded-full bg-gray-500 border-2 border-white"></div>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-gray-900">10k+ Khách hàng</p>
+                        <p class="text-[10px] text-gray-500">Đã tin tưởng CheckinX</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tiện ích dịch vụ khách sạn -->
+        <section class="mb-16 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <h3 class="text-base font-bold text-gray-900 mb-4"><i
+                    class="fa-solid fa-bell-concierge text-primary mr-2"></i>Tiện ích dịch vụ khách sạn</h3>
+            <div id="hotel-amenities" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="animate-pulse bg-gray-100 h-12 rounded-xl"></div>
+                <div class="animate-pulse bg-gray-100 h-12 rounded-xl"></div>
+                <div class="animate-pulse bg-gray-100 h-12 rounded-xl"></div>
+            </div>
+        </section>
+
+        <!-- ĐÚNG YÊU CẦU: Hiển thị danh sách loại phòng dành cho Customer lấy từ GET /hotel/room-types -->
+        <section class="mb-16 space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-2">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Danh sách loại phòng nổi bật</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">Lựa chọn không gian nghỉ dưỡng lý tưởng, phù hợp nhất với
+                        nhu cầu của bạn.</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-medium text-gray-400">
+                    <span>Sắp xếp: Mặc định</span>
+                    <i class="fa-solid fa-arrow-down-short-wide text-primary"></i>
+                </div>
+            </div>
+
+            <!-- Vùng Render danh sách phòng động từ API -->
+            <div id="featured-rooms" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Hiển thị bộ xương tải dữ liệu (Skeleton Loading) khi đang gọi API -->
+                <div
+                    class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm animate-pulse h-[400px]">
+                </div>
+                <div
+                    class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm animate-pulse h-[400px]">
+                </div>
+                <div
+                    class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm animate-pulse h-[400px]">
+                </div>
+            </div>
+        </section>
+
+        <!-- Các tính năng nổi bật -->
+        <section class="text-center my-16 space-y-10">
+            <div class="max-w-2xl mx-auto space-y-2">
+                <h2 class="text-2xl font-bold text-gray-900">Vì sao chọn CheckinX?</h2>
+                <p class="text-sm text-gray-500">Chúng tôi tái định nghĩa trải nghiệm đặt phòng truyền thống bằng công
+                    nghệ hiện đại và sự riêng tư tuyệt đối.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div
+                    class="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col items-center text-center space-y-3 shadow-sm">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-purple-50 text-primary flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-regular fa-clock"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-gray-900">Đặt theo giờ linh hoạt</h4>
+                    <p class="text-xs text-gray-500 leading-relaxed">Chỉ trả tiền cho thời gian thực sự sử dụng. Từ 1
+                        giờ đến cả ngày.</p>
+                </div>
+                <div
+                    class="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col items-center text-center space-y-3 shadow-sm">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-purple-50 text-primary flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-gray-900">Check-in tự động</h4>
+                    <p class="text-xs text-gray-500 leading-relaxed">Nhận phòng ngay lập tức thông qua ứng dụng mà không
+                        cần chờ đợi.</p>
+                </div>
+                <div
+                    class="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col items-center text-center space-y-3 shadow-sm">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-purple-50 text-primary flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-gray-900">Không cần gặp lễ tân</h4>
+                    <p class="text-xs text-gray-500 leading-relaxed">Quy trình hoàn toàn tự động, đảm bảo sự riêng tư và
+                        an toàn.</p>
+                </div>
+                <div
+                    class="bg-white p-6 rounded-2xl border border-gray-100 flex flex-col items-center text-center space-y-3 shadow-sm">
+                    <div
+                        class="w-12 h-12 rounded-xl bg-purple-50 text-primary flex items-center justify-center text-lg shadow-inner">
+                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                    </div>
+                    <h4 class="font-bold text-sm text-gray-900">Giá minh bạch</h4>
+                    <p class="text-xs text-gray-500 leading-relaxed">Giá niêm yết rõ ràng, không phí ẩn. Thanh toán đa
+                        dạng và dễ dàng.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 text-sm text-gray-600 pt-12 pb-6">
+        <div class="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+            <div class="md:col-span-4 space-y-4">
+                <div class="flex items-center gap-2 text-primary font-bold text-xl">
+                    <i class="fa-solid fa-square-poll-horizontal text-2xl"></i>
+                    <span>CheckinX</span>
+                </div>
+                <p class="text-xs text-gray-500 leading-relaxed">Ứng dụng đặt phòng mang lại sự tiện lợi và bảo mật tối
+                    đa cho người dùng hiện đại.</p>
+            </div>
+            <div class="md:col-span-2 space-y-3">
+                <h5 class="font-bold text-gray-900 text-xs uppercase tracking-wider">Về chúng tôi</h5>
+                <ul class="space-y-2 text-xs text-gray-500">
+                    <li><a href="#" class="hover:text-primary">Giới thiệu</a></li>
+                    <li><a href="#" class="hover:text-primary">Tuyển dụng</a></li>
+                </ul>
+            </div>
+            <div class="md:col-span-3 space-y-3">
+                <h5 class="font-bold text-gray-900 text-xs uppercase tracking-wider">Pháp lý</h5>
+                <ul class="space-y-2 text-xs text-gray-500">
+                    <li><a href="#" class="hover:text-primary">Chính sách bảo mật</a></li>
+                </ul>
+            </div>
+            <div class="md:col-span-3 space-y-3">
+                <h5 class="font-bold text-gray-900 text-xs uppercase tracking-wider">Hỗ trợ</h5>
+                <ul class="space-y-2 text-xs text-gray-500">
+                    <li><i class="fa-regular fa-envelope mr-1"></i> support@checkinx.vn</li>
+                    <li><i class="fa-solid fa-phone mr-1"></i> 1900 6789</li>
+                </ul>
+            </div>
+        </div>
+        <div class="text-center text-xs text-gray-400 pt-6 border-t border-gray-100">
+            © 2026 CheckinX. Đã đăng ký bản quyền.
+        </div>
+    </footer>
+
+    <script>
+        const BASE_URL = 'http://localhost:8080/api';
+
+        // Hàm định dạng giá tiền tệ sang dạng dễ đọc kiểu Việt Nam (e.g., 400.000 đồng)
+        function formatMoney(amount) {
+            if (!amount || amount === 0) return 'N/A';
+            return new Intl.NumberFormat('vi-VN').format(amount) + ' đồng';
+        }
+
+        // Hiện thông báo nổi (Toast)
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'text-emerald-800 border-emerald-100 bg-emerald-50';
+            let icon = '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>';
+            
+            if (type === 'info') {
+                bgClass = 'text-blue-800 border-blue-100 bg-blue-50';
+                icon = '<i class="fa-solid fa-circle-info text-blue-500 text-lg"></i>';
+            } else if (type === 'error') {
+                bgClass = 'text-red-800 border-red-100 bg-red-50';
+                icon = '<i class="fa-solid fa-circle-xmark text-red-500 text-lg"></i>';
+            } else if (type === 'warning') {
+                bgClass = 'text-amber-800 border-amber-100 bg-amber-50';
+                icon = '<i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>';
+            }
+
+            toast.className = `toast flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition min-w-[300px] bg-white ${bgClass}`;
+            toast.innerHTML = `${icon} <span class="flex-1">${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'scale(0.9)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // --- 1. KIỂM TRA AUTHENTICATION VÀ ĐIỀU HƯỚNG PROFILE (GET /customer/me) ---
+        async function checkAuthStatus() {
+            const authZone = document.getElementById('auth-zone');
+            
+            // Hỗ trợ lấy token từ URL query parameter (đặc biệt hữu ích khi chạy file:// bị cô lập localStorage)
+            const urlParams = new URLSearchParams(window.location.search);
+            let token = urlParams.get('token');
+            
+            if (token) {
+                localStorage.setItem('token', token);
+                console.log("CheckinX Auth: Đã tìm thấy token từ URL và lưu vào localStorage:", token.substring(0, 15) + "...");
+                // Xóa token khỏi URL thanh địa chỉ để bảo mật và giữ URL sạch đẹp
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                token = localStorage.getItem('token');
+            }
+            
+            console.log("CheckinX Auth: Đang kiểm tra token hiện tại...", token ? "Tìm thấy token: " + token.substring(0, 15) + "..." : "Không tìm thấy token");
+
+            if (!token) {
+                console.log("CheckinX Auth: Không có phiên đăng nhập, hiển thị nút Đăng nhập");
+                renderLoginButton();
+                return;
+            }
+
+            try {
+                const url = `${BASE_URL}/customer/me`;
+                console.log("CheckinX Auth: Đang gọi API lấy thông tin cá nhân...", url);
+                
+                // Gọi API để lấy thông tin phiên đăng nhập hiện tại với Token Authorization
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                console.log("CheckinX Auth: Phản hồi từ API /customer/me - Status:", response.status, response.statusText);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    // Hỗ trợ phòng thủ cả hai định dạng: trực tiếp hoặc bọc trong data
+                    const user = result.data || result;
+                    console.log("CheckinX Auth: Đã tải thông tin user thành công:", user);
+                    
+                    const avatarSrc = user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
+
+                    // Hiển thị Avatar và gắn link chuyển hướng đến trang cá nhân customer-profile.html (kèm token phòng hờ file://)
+                    authZone.innerHTML = `
+                        <a href="customer-profile.html?token=${token}" class="flex items-center gap-2 cursor-pointer group" title="Xem hồ sơ cá nhân">
+                            <img src="${avatarSrc}" alt="${user.fullName}" 
+                                 class="w-8 h-8 rounded-full object-cover ring-2 ring-primary/20 group-hover:ring-primary transition-all" 
+                                 onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}'">
+                            <span class="text-xs font-semibold text-gray-700 group-hover:text-primary hidden sm:inline transition-colors">
+                                ${user.fullName}
+                            </span>
+                        </a>
+                    `;
+                } else {
+                    console.error("CheckinX Auth: API trả về lỗi (không phải 2xx). Status:", response.status);
+                    renderLoginButton();
+                }
+            } catch (error) {
+                console.error("CheckinX Auth: Lỗi mạng hoặc lỗi kết nối khi gọi /customer/me:", error);
+                renderLoginButton();
+            }
+        }
+
+        // Hàm render nút Đăng nhập khi chưa có phiên làm việc
+        function renderLoginButton() {
+            document.getElementById('auth-zone').innerHTML = `
+                <a href="login.html" class="text-sm font-medium text-gray-600 hover:text-primary flex items-center gap-2 transition-colors">
+                    <i class="fa-regular fa-user-circle text-2xl text-gray-400"></i> Đăng nhập
+                </a>
+            `;
+        }
+
+        // --- 2. LẤY THÔNG TIN KHÁCH SẠN (GET /hotel) ---
+        async function fetchHotelInfo() {
+            try {
+                const response = await fetch(`${BASE_URL}/hotel`);
+                if (!response.ok) throw new Error('Không lấy được thông tin khách sạn');
+                const result = await response.json();
+                const hotel = result.data;
+                if (!hotel) throw new Error('Không tìm thấy dữ liệu khách sạn trong data');
+
+                document.getElementById('hotel-name').innerText = hotel.name;
+                document.getElementById('hotel-address').innerHTML = `<i class="fa-solid fa-location-dot text-primary mr-1"></i> ${hotel.address}`;
+
+                if (hotel.images && hotel.images.length > 0) {
+                    const primaryImg = hotel.images.find(img => img.isPrimary) || hotel.images[0];
+                    const imgElement = document.getElementById('hotel-primary-img');
+                    imgElement.src = primaryImg.imageUrl;
+                    imgElement.classList.remove('opacity-0');
+                }
+
+                const amenContainer = document.getElementById('hotel-amenities');
+                if (hotel.amenities && hotel.amenities.length > 0) {
+                    amenContainer.innerHTML = hotel.amenities.map(a => `
+                        <div class="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                            <h5 class="text-xs font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-primary"></i> ${a.name}
+                            </h5>
+                            <p class="text-[11px] text-gray-400 mt-0.5 ml-5">${a.description || ''}</p>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('hotel-name').innerText = "Khách Sạn CheckinX Luxury";
+                document.getElementById('hotel-address').innerText = "Liên kết API thất bại";
+            }
+        }
+
+        // --- 3. ĐÚNG YÊU CẦU: LẤY VÀ HIỂN THỊ DANH SÁCH PHÒNG (GET /hotel/room-types) ---
+        async function fetchRoomTypes() {
+            const roomsContainer = document.getElementById('featured-rooms');
+            try {
+                const response = await fetch(`${BASE_URL}/hotel/room-types?page=0&size=6`);
+                if (!response.ok) throw new Error('Không thể tải danh sách phòng');
+
+                const result = await response.json();
+                const pageData = result.data || {};
+                const roomList = pageData.content || [];
+
+                renderRoomCards(roomList);
+            } catch (err) {
+                console.error(err);
+                roomsContainer.innerHTML = `
+                    <div class="col-span-3 text-center py-12 text-red-500 text-sm font-medium bg-red-50/50 rounded-2xl border border-red-100">
+                        <i class="fa-solid fa-circle-exclamation text-xl mb-1.5 block"></i> Không thể kết nối hoặc lấy danh sách phòng từ API Server!
+                    </div>`;
+            }
+        }
+
+        // Hàm render danh sách thẻ loại phòng động lên giao diện
+        function renderRoomCards(roomList) {
+            const roomsContainer = document.getElementById('featured-rooms');
+            
+            if (!roomList || roomList.length === 0) {
+                roomsContainer.innerHTML = `
+                    <div class="col-span-3 text-center py-12 text-gray-400 text-sm">
+                        <i class="fa-solid fa-bed text-3xl mb-2 block"></i> Hiện tại khách sạn hết phòng trống hoặc không có phòng phù hợp.
+                    </div>`;
+                return;
+            }
+
+            roomsContainer.innerHTML = roomList.map(room => {
+                const roomName = room.roomTypeName || room.name || 'Loại phòng';
+                const roomId = room.roomTypeId || room.id || 0;
+                const thumbnail = room.thumbnail || room.thumbnailUrl || 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80';
+                const description = room.description || 'Không gian nghỉ dưỡng lý tưởng được trang bị đầy đủ tiện nghi hiện đại và cao cấp.';
+
+                return `
+                    <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
+                        <!-- Vùng ảnh phòng -->
+                        <div class="relative h-48 bg-gray-100 overflow-hidden">
+                            <img src="${thumbnail}" alt="${roomName}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80'">
+                            <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-primary font-bold text-xs px-2.5 py-1 rounded-lg border border-purple-100 shadow-sm uppercase tracking-wide">
+                                ${roomName}
+                            </span>
+                        </div>
+                        
+                        <!-- Vùng thông tin phòng -->
+                        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-4 text-[11px] font-medium text-gray-400">
+                                    <span><i class="fa-solid fa-maximize text-primary/70 mr-1"></i>${room.roomSizeM2} m²</span>
+                                    <span><i class="fa-solid fa-bed text-primary/70 mr-1"></i>${room.bedCount} ${room.bedType}</span>
+                                    <span><i class="fa-solid fa-user-group text-primary/70 mr-1"></i>Tối đa ${room.maxAdults} Lớn</span>
+                                </div>
+                                <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">
+                                    ${description}
+                                </p>
+                            </div>
+
+                            <!-- Vùng hiển thị phân tách cấu trúc giá Ngày / Giá giờ của CheckinX -->
+                            <div class="pt-3 border-t border-gray-50 grid grid-cols-2 gap-2 bg-gray-50/50 p-2 rounded-xl">
+                                <div>
+                                    <span class="block text-[10px] text-gray-400 uppercase font-semibold">Theo Ngày</span>
+                                    <span class="text-xs font-bold text-gray-900">${room.pricePerDay > 0 ? formatMoney(room.pricePerDay) : 'Hết phòng'}</span>
+                                </div>
+                                <div class="border-l border-gray-200 pl-3">
+                                    <span class="block text-[10px] text-gray-400 uppercase font-semibold">Theo Giờ</span>
+                                    <span class="text-xs font-bold text-primary">${room.pricePerHour > 0 ? formatMoney(room.pricePerHour) + '<span class="text-[10px] font-normal text-gray-400">/giờ</span>' : 'N/A'}</span>
+                                </div>
+                            </div>
+
+                            <!-- Hành động chọn đặt phòng -->
+                            <button onclick="bookRoom(${roomId})" class="w-full bg-gray-900 hover:bg-primary text-white text-xs font-semibold py-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-1">
+                                Đặt phòng ngay <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Điều hướng sang chi tiết phòng
+        function bookRoom(roomId) {
+            window.location.href = `room-type-detail.html?roomTypeId=${roomId}`;
+        }
+
+        // --- 4. TÌM KIẾM PHÒNG (Chuyển hướng sang trang search.html với các tham số bộ lọc) ---
+        document.getElementById('search-room-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const bookingType = document.getElementById('search-booking-type').value;
+            const minPrice = document.getElementById('search-min-price').value;
+            const maxPrice = document.getElementById('search-max-price').value;
+            const adults = document.getElementById('search-adults').value;
+            const checkIn = document.getElementById('search-checkin').value;
+            const checkOut = document.getElementById('search-checkout').value;
+
+            // Xây dựng danh sách tham số lọc dạng Query Parameters để truyền qua URL
+            const params = new URLSearchParams({
+                bookingType: bookingType,
+                adults: adults,
+                page: 0,
+                size: 6
+            });
+            
+            if (minPrice) params.append('minPrice', minPrice);
+            if (maxPrice) params.append('maxPrice', maxPrice);
+            if (checkIn) params.append('checkIn', checkIn);
+            if (checkOut) params.append('checkOut', checkOut);
+
+            // Chuyển hướng sang trang search.html kèm tham số
+            window.location.href = `search.html?${params.toString()}`;
+        });
+
+        // --- 5. HỆ THỐNG THÔNG BÁO (GET /customer/notifications) ---
+        function formatNotificationTime(isoStr) {
+            try {
+                const date = new Date(isoStr);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMins / 60);
+                
+                if (diffMins < 1) return 'Vừa xong';
+                if (diffMins < 60) return `${diffMins} phút trước`;
+                if (diffHours < 24) return `${diffHours} giờ trước`;
+                
+                return date.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+            } catch (e) {
+                return isoStr;
+            }
+        }
+
+        async function updateNotificationBadge() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const response = await fetch(`${BASE_URL}/customer/notifications?page=0&size=20`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const res = await response.json();
+                    const content = res.data?.content || [];
+                    const unreads = content.filter(n => !n.isRead);
+                    const badge = document.getElementById('notification-badge');
+                    const unreadCountText = document.getElementById('unread-count-text');
+                    
+                    if (badge) {
+                        if (unreads.length > 0) {
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
+                        }
+                    }
+                    if (unreadCountText) {
+                        unreadCountText.innerText = `${unreads.length} mới`;
+                    }
+                }
+            } catch (err) {
+                console.error("Lỗi cập nhật badge thông báo:", err);
+            }
+        }
+
+        async function loadNotifications() {
+            const token = localStorage.getItem('token');
+            const list = document.getElementById('notification-list');
+            if (!list) return;
+
+            list.innerHTML = `
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${BASE_URL}/customer/notifications?page=0&size=15`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const res = await response.json();
+                    const content = res.data?.content || [];
+                    renderNotifications(content);
+                } else {
+                    list.innerHTML = `<div class="p-4 text-center text-xs text-gray-400">Không thể tải thông báo</div>`;
+                }
+            } catch (err) {
+                console.error("Lỗi tải danh sách thông báo:", err);
+                list.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Đã xảy ra lỗi kết nối</div>`;
+            }
+        }
+
+        function renderNotifications(items) {
+            const list = document.getElementById('notification-list');
+            if (!list) return;
+
+            if (!items || items.length === 0) {
+                list.innerHTML = `
+                    <div class="p-8 text-center text-gray-400 space-y-2">
+                        <i class="fa-regular fa-bell-slash text-3xl text-gray-200"></i>
+                        <p class="text-xs">Bạn chưa có thông báo nào</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = items.map(item => {
+                let icon = '<i class="fa-solid fa-circle-info text-blue-500"></i>';
+                if (item.notificationType?.includes('CONFIRMED') || item.notificationType?.includes('SUCCESS')) {
+                    icon = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+                } else if (item.notificationType?.includes('CANCEL') || item.notificationType?.includes('REFUND')) {
+                    icon = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+                }
+
+                const dateStr = item.createdAt ? formatNotificationTime(item.createdAt) : '';
+                const unreadBg = !item.isRead ? 'bg-purple-50/40 hover:bg-purple-50/80' : 'hover:bg-gray-50';
+                const unreadDot = !item.isRead ? '<span class="w-1.5 h-1.5 bg-purple-600 rounded-full self-start mt-1.5 flex-shrink-0"></span>' : '';
+
+                // Chuyển hướng khi click thông báo có bookingId
+                const clickAction = item.bookingId 
+                    ? `onclick="window.location.href='customer-profile.html?bookingId=${item.bookingId}'"`
+                    : '';
+
+                return `
+                    <div ${clickAction} class="p-4 flex items-start gap-3 cursor-pointer transition-colors duration-200 ${unreadBg}">
+                        <div class="text-base mt-0.5 flex-shrink-0">${icon}</div>
+                        <div class="flex-1 space-y-0.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <h5 class="text-xs font-bold text-gray-900 line-clamp-1">${item.title}</h5>
+                                ${unreadDot}
+                            </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed">${item.message}</p>
+                            <span class="text-[9px] text-gray-400 block pt-0.5">${dateStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function initNotificationSystem() {
+            const token = localStorage.getItem('token');
+            const dropdown = document.getElementById('notification-dropdown');
+            const btn = document.getElementById('notification-btn');
+
+            if (!token) return;
+
+            if (btn) {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                    if (!dropdown.classList.contains('hidden')) {
+                        loadNotifications();
+                    }
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                if (dropdown && !dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+
+            await updateNotificationBadge();
+        }
+
+        // --- KHỞI CHẠY KHI TẢI TRANG ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            checkAuthStatus();
+            await fetchHotelInfo();
+            await fetchRoomTypes(); // Gọi hàm tải và hiển thị danh sách phòng động
+            await initNotificationSystem();
+        });
+    </script>
+
+    <!-- CheckinX Style Unification & Smart Toast Alert Overrides -->
+    <script>
+        (function() {
+            if (window.alertOverridden) return;
+            window.alertOverridden = true;
+
+            // 1. Tự động tiêm Google Font Outfit nếu chưa có
+            if (!document.querySelector('link[href*="Outfit"]')) {
+                const linkPreconnect1 = document.createElement('link');
+                linkPreconnect1.rel = 'preconnect';
+                linkPreconnect1.href = 'https://fonts.googleapis.com';
+                document.head.appendChild(linkPreconnect1);
+
+                const linkPreconnect2 = document.createElement('link');
+                linkPreconnect2.rel = 'preconnect';
+                linkPreconnect2.href = 'https://fonts.gstatic.com';
+                linkPreconnect2.crossOrigin = 'anonymous';
+                document.head.appendChild(linkPreconnect2);
+
+                const linkFont = document.createElement('link');
+                linkFont.rel = 'stylesheet';
+                linkFont.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap';
+                document.head.appendChild(linkFont);
+            }
+
+            // 2. Ép font-family Outfit cho toàn bộ trang
+            const styleElement = document.createElement('style');
+            styleElement.id = 'checkinx-unified-styles';
+            styleElement.innerHTML = `
+                body, html, input, select, textarea, button {
+                    font-family: 'Outfit', sans-serif !important;
+                }
+                #toast-container {
+                    position: fixed;
+                    top: 1rem;
+                    right: 1rem;
+                    z-index: 99999;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                    pointer-events: none;
+                }
+                .toast-item {
+                    pointer-events: auto;
+                    animation: toastSlideIn 0.3s ease-out forwards;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                    transition: all 0.3s ease;
+                }
+                @keyframes toastSlideIn {
+                    from { transform: translateX(120%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                /* Tailwind utility overrides for pages without Tailwind loaded */
+                .toast-item.flex { display: flex !important; }
+                .toast-item.items-center { align-items: center !important; }
+                .toast-item.gap-3 { gap: 0.75rem !important; }
+                .toast-item.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+                .toast-item.py-3 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+                .toast-item.rounded-2xl { border-radius: 1rem !important; }
+                .toast-item.border { border: 1px solid rgba(226, 232, 240, 0.8) !important; }
+                .toast-item.text-xs { font-size: 0.75rem !important; }
+                .toast-item.font-semibold { font-weight: 600 !important; }
+                .toast-item.bg-white { background-color: #ffffff !important; }
+                .toast-item.text-emerald-800 { color: #065f46 !important; }
+                .toast-item.border-emerald-100 { border-color: #a7f3d0 !important; }
+                .toast-item.bg-emerald-50\/95 { background-color: rgba(240, 253, 250, 0.95) !important; }
+                .toast-item.text-blue-800 { color: #1e40af !important; }
+                .toast-item.border-blue-100 { border-color: #bfdbfe !important; }
+                .toast-item.bg-blue-50\/95 { background-color: rgba(239, 246, 255, 0.95) !important; }
+                .toast-item.text-red-800 { color: #991b1b !important; }
+                .toast-item.border-red-100 { border-color: #fecaca !important; }
+                .toast-item.bg-red-50\/95 { background-color: rgba(254, 242, 242, 0.95) !important; }
+                .toast-item.text-amber-800 { color: #92400e !important; }
+                .toast-item.border-amber-100 { border-color: #fde68a !important; }
+                .toast-item.bg-amber-50\/95 { background-color: rgba(255, 251, 235, 0.95) !important; }
+                .toast-item.backdrop-blur-sm { backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; }
+                .toast-item .flex-1 { flex: 1 1 0% !important; }
+            `;
+            document.head.appendChild(styleElement);
+
+            // 3. Tự động tiêm toast-container vào body
+            function injectToastContainer() {
+                if (!document.getElementById('toast-container')) {
+                    const container = document.createElement('div');
+                    container.id = 'toast-container';
+                    container.className = 'flex flex-col gap-2';
+                    document.body.appendChild(container);
+                }
+            }
+
+            if (document.body) {
+                injectToastContainer();
+            } else {
+                window.addEventListener('DOMContentLoaded', injectToastContainer);
+            }
+
+            // 4. Định nghĩa hàm showToast mượt mà cao cấp
+            window.showToast = function(message, type = 'success') {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+
+                const toast = document.createElement('div');
+                
+                let bgClass = 'text-emerald-800 border-emerald-100 bg-emerald-50/95 backdrop-blur-sm';
+                let icon = '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>';
+                
+                if (type === 'info') {
+                    bgClass = 'text-blue-800 border-blue-100 bg-blue-50/95 backdrop-blur-sm';
+                    icon = '<i class="fa-solid fa-circle-info text-blue-500 text-lg"></i>';
+                } else if (type === 'error') {
+                    bgClass = 'text-red-800 border-red-100 bg-red-50/95 backdrop-blur-sm';
+                    icon = '<i class="fa-solid fa-circle-xmark text-red-500 text-lg"></i>';
+                } else if (type === 'warning') {
+                    bgClass = 'text-amber-800 border-amber-100 bg-amber-50/95 backdrop-blur-sm';
+                    icon = '<i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>';
+                }
+
+                toast.className = `toast-item flex items-center gap-3 px-4 py-3 rounded-2xl border text-xs font-semibold bg-white ${bgClass}`;
+                toast.innerHTML = `${icon} <span class="flex-1">${message}</span>`;
+                
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'scale(0.9) translateX(20px)';
+                    setTimeout(() => toast.remove(), 300);
+                }, 4000);
+            };
+
+            // 5. Ghi đè hàm alert() truyền thống
+            window.alert = function(message) {
+                if (!message) return;
+                const msgStr = String(message);
+                
+                // Phân loại màu thông báo dựa trên từ khóa
+                let type = 'info';
+                const msgLower = msgStr.toLowerCase();
+                if (msgLower.includes('thành công') || msgLower.includes('success') || msgLower.includes('hoàn tất') || msgLower.includes('đăng nhập thành công') || msgLower.includes('đăng ký thành công')) {
+                    type = 'success';
+                } else if (msgLower.includes('lỗi') || msgLower.includes('thất bại') || msgLower.includes('error') || msgLower.includes('hỏng') || msgLower.includes('không thể') || msgLower.includes('chưa') || msgLower.includes('không đúng') || msgLower.includes('không tìm thấy')) {
+                    type = 'error';
+                } else if (msgLower.includes('cảnh báo') || msgLower.includes('chú ý') || msgLower.includes('warning') || msgLower.includes('vui lòng') || msgLower.includes('yêu cầu') || msgLower.includes('hết hạn')) {
+                    type = 'warning';
+                }
+
+                window.showToast(msgStr, type);
+                console.log("CheckinX Smart Toast: Đã đánh chặn alert ->", msgStr);
+            };
+        })();
+    </script>
+
+</body>
+
+</html>

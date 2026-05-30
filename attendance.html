@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheckinX - Chấm công</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5B30A6',
+                        primaryHover: '#4A238A',
+                        darkText: '#1F2937'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        #toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+        }
+
+        .toast {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col justify-between">
+
+    <!-- Container chứa thông báo Toast -->
+    <div id="toast-container" class="flex flex-col gap-2"></div>
+
+    <!-- Header / Thanh điều hướng -->
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <a href="customer-home.html" class="flex items-center gap-2 text-primary font-bold text-xl transition hover:opacity-90">
+                    <i class="fa-solid fa-square-poll-horizontal text-2xl"></i>
+                    <span>CheckinX</span>
+                </a>
+                <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+                    <a href="customer-home.html" class="hover:text-primary transition-colors">Trang chủ</a>
+                    <a href="search.html" class="hover:text-primary transition-colors">Phòng</a>
+                    <a href="#" class="hover:text-primary transition-colors">Đặt phòng</a>
+                    <a href="#" class="hover:text-primary transition-colors">Hỗ trợ</a>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Notification Bell Container -->
+                <div class="relative">
+                    <button id="notification-btn" class="text-gray-500 hover:text-primary relative transition-colors focus:outline-none py-1">
+                        <i class="fa-regular fa-bell text-xl"></i>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full hidden"></span>
+                    </button>
+                    
+                    <!-- Notification Dropdown -->
+                    <div id="notification-dropdown" class="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-100 hidden z-50 overflow-hidden">
+                        <div class="p-4 border-b border-gray-50 flex items-center justify-between">
+                            <h4 class="font-extrabold text-gray-900 text-sm tracking-tight flex items-center gap-1.5">
+                                <i class="fa-solid fa-bell text-primary"></i> Thông báo của bạn
+                            </h4>
+                            <span id="unread-count-text" class="text-[10px] bg-purple-100 text-primary font-bold px-2 py-0.5 rounded-full uppercase">0 mới</span>
+                        </div>
+                        <div id="notification-list" class="max-h-[360px] overflow-y-auto divide-y divide-gray-50 scrollbar-thin">
+                            <!-- Render danh sách động -->
+                        </div>
+                    </div>
+                </div>
+
+
+                <div id="auth-zone" class="flex items-center pl-2">
+                    <div class="animate-pulse bg-gray-200 h-8 w-8 rounded-full"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
+        <a href="#" id="back-to-dashboard-btn" class="inline-flex items-center gap-2 text-primary font-bold hover:underline mb-4 transition-all">
+            <i class="fa-solid fa-arrow-left"></i> Quay lại Bảng điều khiển
+        </a>
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Chấm công & Thời gian</h1>
+                <p class="text-gray-500 text-sm mt-1">Ghi lại giờ làm việc và xem hoạt động gần đây.</p>
+            </div>
+            <div class="bg-purple-50 text-primary border border-purple-100 px-4 py-2 rounded-full font-medium text-sm flex items-center gap-2">
+                <i class="fa-solid fa-location-dot"></i> Grand Horizon Resort & Spa
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 w-full">
+            <!-- Left: Checkin Box (2/3 width) -->
+            <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-8 flex flex-col items-center justify-center text-center">
+                <h3 class="text-gray-500 font-semibold text-sm uppercase tracking-wider mb-2">CA LÀM VIỆC HIỆN TẠI</h3>
+                <div id="clock-display" class="text-6xl font-extrabold text-primary mb-2">--:-- --</div>
+                <div id="date-display" class="text-gray-600 mb-8 font-medium">Đang tải...</div>
+
+                <div class="flex gap-4 w-full max-w-md">
+                    <button id="btn-checkin" class="flex-1 bg-primary hover:bg-primaryHover text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-purple-200">
+                        <i class="fa-solid fa-fingerprint"></i> Vào ca
+                    </button>
+                    <button id="btn-checkout" class="flex-1 bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-200 font-bold py-4 rounded-xl transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-right-from-bracket"></i> Ra ca
+                    </button>
+                </div>
+
+                <div id="next-shift-info" class="mt-6 bg-blue-50 text-blue-700 px-6 py-3 rounded-lg text-sm font-medium flex items-center gap-2 w-full max-w-md justify-center">
+                    <i class="fa-regular fa-clock"></i> Đang tải thông tin ca làm việc...
+                </div>
+            </div>
+
+            <!-- Right: Salary Board -->
+            <div id="salary-board" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col justify-between hidden">
+                <div>
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Lương tháng này</h3>
+                        <span class="text-primary bg-purple-50 px-2.5 py-1 rounded text-xs font-bold" id="salary-month-lbl">Tháng --/----</span>
+                    </div>
+                    <div class="mb-5">
+                        <div class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Tổng lương tích lũy</div>
+                        <div class="text-3xl font-black text-primary" id="salary-total-val">0 đ</div>
+                    </div>
+                    <div class="space-y-3.5">
+                        <div class="flex justify-between items-center text-sm border-b border-gray-50 pb-2">
+                            <span class="text-gray-500 font-medium">Số ca làm tích lũy</span>
+                            <span class="font-extrabold text-gray-800" id="salary-count-val">0 ca</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm border-b border-gray-50 pb-2">
+                            <span class="text-gray-500 font-medium">Đơn giá mỗi ca</span>
+                            <span class="font-semibold text-gray-700" id="salary-shift-val">0 đ</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-500 font-medium">Trạng thái lương</span>
+                            <span id="salary-status-val" class="font-bold text-[10px] px-2.5 py-1 rounded uppercase bg-gray-100 text-gray-600">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-[10px] text-gray-400 font-medium text-right border-t border-gray-50 pt-3 mt-4" id="salary-updated-lbl">
+                    Cập nhật lúc: --
+                </div>
+            </div>
+
+            <!-- Salary Board Placeholder -->
+            <div id="salary-board-placeholder" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col items-center justify-center text-center min-h-[300px]">
+                <div class="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-primary text-xl mb-3 shadow-inner">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Lương tháng này</h3>
+                <p class="text-xs text-gray-500 max-w-[200px]" id="salary-placeholder-msg">Đang tải thông tin bảng lương...</p>
+            </div>
+        </div>
+
+        <!-- Weekly Shifts Table -->
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-8">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-week text-primary"></i> Lịch làm việc tuần này
+                </h3>
+                <span class="text-xs bg-purple-50 text-primary border border-purple-100 px-3 py-1 rounded-full font-bold" id="weekly-range-lbl">Đang xác định tuần...</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-gray-500 uppercase bg-white border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-4 font-semibold">NGÀY TRỰC</th>
+                            <th class="px-6 py-4 font-semibold">CA LÀM VIỆC</th>
+                            <th class="px-6 py-4 font-semibold">THỜI GIAN CA</th>
+                            <th class="px-6 py-4 font-semibold text-center">TRẠNG THÁI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weekly-shifts-tbody" class="divide-y divide-gray-50 text-gray-700">
+                        <tr><td colspan="4" class="text-center py-8 text-gray-500">Đang tải lịch làm việc...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- History Table -->
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-10">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 class="text-lg font-bold text-gray-900">Lịch sử gần đây</h3>
+                <a href="#" class="text-sm font-medium text-primary hover:underline flex items-center gap-1">Xem toàn bộ lịch sử <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-gray-500 uppercase bg-white border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-4 font-semibold">NGÀY</th>
+                            <th class="px-6 py-4 font-semibold">CA TRỰC</th>
+                            <th class="px-6 py-4 font-semibold">GIỜ VÀO</th>
+                            <th class="px-6 py-4 font-semibold">GIỜ RA</th>
+                            <th class="px-6 py-4 font-semibold">TRẠNG THÁI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-tbody" class="divide-y divide-gray-50 text-gray-700">
+                        <tr><td colspan="5" class="text-center py-6 text-gray-500">Đang tải lịch sử...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Variables
+        const jwtToken = localStorage.getItem('jwtToken');
+        let currentAssignmentId = null; 
+
+        if (!jwtToken) {
+            window.location.href = 'login.html';
+        }
+
+        // Clock logic
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            let ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; 
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            
+            document.getElementById('clock-display').innerText = `${hours}:${minutes} ${ampm}`;
+            
+            const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+            const dayName = days[now.getDay()];
+            const day = now.getDate();
+            const month = now.getMonth() + 1;
+            const year = now.getFullYear();
+            
+            document.getElementById('date-display').innerText = `${dayName}, ${day} tháng ${month}, ${year}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Helper fetch
+        async function authFetch(url, options = {}) {
+            if(!options.headers) options.headers = {};
+            options.headers['Authorization'] = 'Bearer ' + jwtToken;
+            const response = await fetch(url, options);
+            if(response.status === 401 || response.status === 403) {
+                window.location.href = 'login.html';
+            }
+            return response.json();
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-triangle-exclamation';
+            toast.className = `toast ${bgColor} text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 font-medium min-w-[300px] mb-2`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-xl"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize Data
+        async function initPage() {
+            try {
+                // 1. Get Profile
+                const profileRes = await authFetch('http://localhost:8080/api/staff/me');
+                if(profileRes.success) {
+                    const role = profileRes.data.role;
+                    const backBtn = document.getElementById('back-to-dashboard-btn');
+                    if (backBtn) {
+                        if(role === 'RECEPTIONIST') {
+                            backBtn.href = 'receptionist-dashboard.html';
+                        } else if (role === 'CLEANER') {
+                            backBtn.href = 'cleaner-dashboard.html';
+                        } else {
+                            backBtn.style.display = 'none';
+                        }
+                    }
+                    
+                    // Safe avatar render
+                    const avatarEl = document.getElementById('user-avatar');
+                    const initialEl = document.getElementById('user-initial');
+                    if (avatarEl && initialEl) {
+                        if(profileRes.data.avatarUrl) {
+                            avatarEl.src = profileRes.data.avatarUrl;
+                            avatarEl.classList.remove('hidden');
+                            initialEl.classList.add('hidden');
+                        } else {
+                            initialEl.textContent = profileRes.data.fullName.charAt(0).toUpperCase();
+                            avatarEl.classList.add('hidden');
+                            initialEl.classList.remove('hidden');
+                        }
+                    } else {
+                        // Dynamically update auth-zone with user profile
+                        const authZone = document.getElementById('auth-zone');
+                        if (authZone) {
+                            const fullName = profileRes.data.fullName || "Staff";
+                            const initial = fullName.charAt(0).toUpperCase();
+                            authZone.innerHTML = `
+                                <div class="flex items-center gap-2">
+                                    <div class="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm shadow-md">
+                                        ${initial}
+                                    </div>
+                                    <span class="text-sm font-semibold text-gray-700 hidden sm:inline-block">${fullName}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+
+                // 2. Get Weekly Shifts
+                const shiftsRes = await authFetch('http://localhost:8080/api/staff/my-current-week');
+                if(shiftsRes.success) {
+                    const shifts = shiftsRes.data;
+                    
+                    // Render weekly shifts table
+                    renderWeeklyShiftsTable(shifts);
+                    
+                    // Find Today's Shift
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const todayShift = shifts.find(s => s.workDate === todayStr);
+                    
+                    if(todayShift) {
+                        currentAssignmentId = todayShift.id;
+                        document.getElementById('next-shift-info').innerHTML = `<i class="fa-regular fa-clock"></i> Ca làm việc hôm nay của bạn từ ${todayShift.startTime} đến ${todayShift.endTime}.`;
+                    } else {
+                        document.getElementById('next-shift-info').innerHTML = `<i class="fa-solid fa-bed"></i> Bạn không có ca trực nào trong hôm nay.`;
+                        document.getElementById('next-shift-info').className = "mt-6 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg text-sm font-medium flex items-center gap-2 w-full max-w-md justify-center";
+                        document.getElementById('btn-checkin').disabled = true;
+                        document.getElementById('btn-checkout').disabled = true;
+                        document.getElementById('btn-checkin').classList.add('opacity-50', 'cursor-not-allowed');
+                        document.getElementById('btn-checkout').classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                }
+
+                // 3. Get Attendance History
+                loadHistory();
+
+                // 4. Get Salary Details
+                loadSalaryDetails();
+
+            } catch (err) {
+                console.error(err);
+                showToast("Lỗi tải dữ liệu", "error");
+            }
+        }
+
+        // Render Weekly Shifts Table
+        function renderWeeklyShiftsTable(shifts) {
+            const tbody = document.getElementById('weekly-shifts-tbody');
+            if (!tbody) return;
+            
+            if (!shifts || shifts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-gray-500">Bạn không có ca trực nào được phân công trong tuần này.</td></tr>`;
+                document.getElementById('weekly-range-lbl').innerText = 'Không có ca làm';
+                return;
+            }
+            
+            // Sort shifts by workDate asc
+            shifts.sort((a, b) => new Date(a.workDate) - new Date(b.workDate));
+            
+            // Update weekly range label
+            const firstDate = new Date(shifts[0].workDate);
+            const lastDate = new Date(shifts[shifts.length - 1].workDate);
+            const firstStr = `${firstDate.getDate().toString().padStart(2, '0')}/${(firstDate.getMonth() + 1).toString().padStart(2, '0')}`;
+            const lastStr = `${lastDate.getDate().toString().padStart(2, '0')}/${(lastDate.getMonth() + 1).toString().padStart(2, '0')}`;
+            document.getElementById('weekly-range-lbl').innerText = `Tuần: ${firstStr} - ${lastStr}`;
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const daysOfWeek = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+            
+            let html = '';
+            shifts.forEach(s => {
+                const shiftDate = new Date(s.workDate);
+                const dayName = daysOfWeek[shiftDate.getDay()];
+                const dateStr = `${shiftDate.getDate().toString().padStart(2, '0')}/${(shiftDate.getMonth() + 1).toString().padStart(2, '0')}`;
+                
+                // Determine Badge/Status
+                let badgeHtml = '';
+                if (s.workDate === todayStr) {
+                    badgeHtml = `<span class="bg-purple-100 text-primary px-3 py-1 rounded-full font-bold text-xs uppercase tracking-wider">Hôm nay</span>`;
+                } else if (new Date(s.workDate) < new Date(todayStr)) {
+                    badgeHtml = `<span class="bg-gray-100 text-gray-500 px-3 py-1 rounded-full font-bold text-xs uppercase tracking-wider">Đã qua</span>`;
+                } else {
+                    badgeHtml = `<span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold text-xs uppercase tracking-wider">Sắp tới</span>`;
+                }
+                
+                html += `
+                <tr class="hover:bg-gray-50/50 transition">
+                    <td class="px-6 py-4 font-bold text-gray-900">
+                        <div class="flex flex-col">
+                            <span>${dayName}</span>
+                            <span class="text-xs text-gray-400 font-normal mt-0.5">${dateStr}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-medium text-gray-700">${s.shiftName}</td>
+                    <td class="px-6 py-4 font-mono text-gray-600">${s.startTime.substring(0, 5)} - ${s.endTime.substring(0, 5)}</td>
+                    <td class="px-6 py-4 text-center">${badgeHtml}</td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // Load Monthly Salary Board Details
+        async function loadSalaryDetails() {
+            const salaryBoard = document.getElementById('salary-board');
+            const salaryPlaceholder = document.getElementById('salary-board-placeholder');
+            const placeholderMsg = document.getElementById('salary-placeholder-msg');
+            
+            try {
+                const res = await authFetch('http://localhost:8080/api/staff/salary/current-month');
+                if (res.success && res.data) {
+                    const data = res.data;
+                    
+                    document.getElementById('salary-month-lbl').innerText = `Tháng ${data.month}/${data.year}`;
+                    
+                    const numTotal = Number(data.totalSalary || 0);
+                    const finalTotal = numTotal < 10000 ? numTotal * 10000 : numTotal;
+                    document.getElementById('salary-total-val').innerText = finalTotal.toLocaleString('vi-VN') + ' đồng';
+                    
+                    document.getElementById('salary-count-val').innerText = `${data.attendanceCount || 0} ca`;
+                    
+                    const numPerShift = Number(data.salaryPerShift || 0);
+                    const finalPerShift = numPerShift < 10000 ? numPerShift * 10000 : numPerShift;
+                    document.getElementById('salary-shift-val').innerText = finalPerShift.toLocaleString('vi-VN') + ' đồng';
+                    
+                    const statusValEl = document.getElementById('salary-status-val');
+                    if (data.status === 'PAID') {
+                        statusValEl.className = 'font-bold text-[10px] px-2.5 py-1 rounded uppercase bg-green-50 text-green-600';
+                        statusValEl.innerText = 'ĐÃ CHI TRẢ';
+                    } else {
+                        statusValEl.className = 'font-bold text-[10px] px-2.5 py-1 rounded uppercase bg-orange-50 text-orange-600';
+                        statusValEl.innerText = 'CHỜ CHI TRẢ';
+                    }
+                    
+                    if (data.updatedAt) {
+                        const updatedDate = new Date(data.updatedAt);
+                        document.getElementById('salary-updated-lbl').innerText = `Cập nhật lúc: ${updatedDate.toLocaleTimeString('vi-VN')} ${updatedDate.toLocaleDateString('vi-VN')}`;
+                    } else if (data.createAt) {
+                        const createdDate = new Date(data.createAt);
+                        document.getElementById('salary-updated-lbl').innerText = `Cập nhật lúc: ${createdDate.toLocaleTimeString('vi-VN')} ${createdDate.toLocaleDateString('vi-VN')}`;
+                    } else {
+                        document.getElementById('salary-updated-lbl').innerText = '';
+                    }
+                    
+                    salaryBoard.classList.remove('hidden');
+                    salaryPlaceholder.classList.add('hidden');
+                } else {
+                    placeholderMsg.innerText = 'Chưa có bảng lương được chốt cho tháng này.';
+                    salaryBoard.classList.add('hidden');
+                    salaryPlaceholder.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                placeholderMsg.innerText = 'Chưa chốt lương hoặc không thể tải bảng lương.';
+                salaryBoard.classList.add('hidden');
+                salaryPlaceholder.classList.remove('hidden');
+            }
+        }
+
+        // Notification dropdown toggle
+        const notificationBtn = document.getElementById('notification-btn');
+        const notificationDropdown = document.getElementById('notification-dropdown');
+        if (notificationBtn && notificationDropdown) {
+            notificationBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                notificationDropdown.classList.toggle('hidden');
+            });
+            document.addEventListener('click', () => {
+                notificationDropdown.classList.add('hidden');
+            });
+            notificationDropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+
+        async function loadHistory() {
+            try {
+                const attRes = await authFetch('http://localhost:8080/api/staff/my-attendance?page=0&size=5');
+                const tbody = document.getElementById('attendance-tbody');
+                
+                if(attRes.success && attRes.data && attRes.data.content) {
+                    const list = attRes.data.content;
+                    if(list.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-gray-500">Chưa có dữ liệu chấm công.</td></tr>`;
+                        return;
+                    }
+
+                    let html = '';
+                    list.forEach(item => {
+                        const inDate = new Date(item.checkIn);
+                        const statusBadge = item.lateMinutes > 0 || item.status === 'LATE' 
+                            ? `<span class="bg-red-50 text-red-600 px-2.5 py-1 rounded font-bold text-[10px]">MUỘN</span>`
+                            : `<span class="bg-green-50 text-green-600 px-2.5 py-1 rounded font-bold text-[10px]">ĐÚNG GIỜ</span>`;
+                            
+                        html += `
+                        <tr class="hover:bg-gray-50/50 transition">
+                            <td class="px-6 py-4 font-medium text-gray-900">${inDate.toLocaleDateString('vi-VN', {month:'short', day:'numeric', year:'numeric'})}</td>
+                            <td class="px-6 py-4">${item.shiftName}</td>
+                            <td class="px-6 py-4 font-medium">${inDate.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'})}</td>
+                            <td class="px-6 py-4 text-gray-400">-</td>
+                            <td class="px-6 py-4">${statusBadge}</td>
+                        </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Action Handlers
+        document.getElementById('btn-checkin').addEventListener('click', async () => {
+            try {
+                const res = await authFetch('http://localhost:8080/api/staff/check-in', {
+                    method: 'POST'
+                });
+                if(res.success) {
+                    showToast("Chấm công Vào ca thành công!");
+                    loadHistory();
+                } else {
+                    showToast(res.message || "Lỗi chấm công", "error");
+                }
+            } catch (err) {
+                showToast("Lỗi kết nối máy chủ", "error");
+            }
+        });
+
+        document.getElementById('btn-checkout').addEventListener('click', async () => {
+            if(!currentAssignmentId) {
+                showToast("Không tìm thấy ca làm việc hôm nay", "error");
+                return;
+            }
+            try {
+                const res = await authFetch(`http://localhost:8080/api/staff/check-out/${currentAssignmentId}`, {
+                    method: 'POST'
+                });
+                if(res.success) {
+                    showToast("Chấm công Ra ca thành công!");
+                } else {
+                    showToast(res.message || "Lỗi Ra ca", "error");
+                }
+            } catch (err) {
+                showToast("Lỗi kết nối máy chủ", "error");
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', initPage);
+
+    </script>
+
+    <!-- CheckinX Style Unification & Smart Toast Alert Overrides -->
+    <script>
+        (function() {
+            if (window.alertOverridden) return;
+            window.alertOverridden = true;
+
+            // 1. Tự động tiêm Google Font Outfit nếu chưa có
+            if (!document.querySelector('link[href*="Outfit"]')) {
+                const linkPreconnect1 = document.createElement('link');
+                linkPreconnect1.rel = 'preconnect';
+                linkPreconnect1.href = 'https://fonts.googleapis.com';
+                document.head.appendChild(linkPreconnect1);
+
+                const linkPreconnect2 = document.createElement('link');
+                linkPreconnect2.rel = 'preconnect';
+                linkPreconnect2.href = 'https://fonts.gstatic.com';
+                linkPreconnect2.crossOrigin = 'anonymous';
+                document.head.appendChild(linkPreconnect2);
+
+                const linkFont = document.createElement('link');
+                linkFont.rel = 'stylesheet';
+                linkFont.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap';
+                document.head.appendChild(linkFont);
+            }
+
+            // 2. Ép font-family Outfit cho toàn bộ trang
+            const styleElement = document.createElement('style');
+            styleElement.id = 'checkinx-unified-styles';
+            styleElement.innerHTML = `
+                body, html, input, select, textarea, button {
+                    font-family: 'Outfit', sans-serif !important;
+                }
+                #toast-container {
+                    position: fixed;
+                    top: 1rem;
+                    right: 1rem;
+                    z-index: 99999;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                    pointer-events: none;
+                }
+                .toast-item {
+                    pointer-events: auto;
+                    animation: toastSlideIn 0.3s ease-out forwards;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                    transition: all 0.3s ease;
+                }
+                @keyframes toastSlideIn {
+                    from { transform: translateX(120%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                /* Tailwind utility overrides for pages without Tailwind loaded */
+                .toast-item.flex { display: flex !important; }
+                .toast-item.items-center { align-items: center !important; }
+                .toast-item.gap-3 { gap: 0.75rem !important; }
+                .toast-item.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+                .toast-item.py-3 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
+                .toast-item.rounded-2xl { border-radius: 1rem !important; }
+                .toast-item.border { border: 1px solid rgba(226, 232, 240, 0.8) !important; }
+                .toast-item.text-xs { font-size: 0.75rem !important; }
+                .toast-item.font-semibold { font-weight: 600 !important; }
+                .toast-item.bg-white { background-color: #ffffff !important; }
+                .toast-item.text-emerald-800 { color: #065f46 !important; }
+                .toast-item.border-emerald-100 { border-color: #a7f3d0 !important; }
+                .toast-item.bg-emerald-50\/95 { background-color: rgba(240, 253, 250, 0.95) !important; }
+                .toast-item.text-blue-800 { color: #1e40af !important; }
+                .toast-item.border-blue-100 { border-color: #bfdbfe !important; }
+                .toast-item.bg-blue-50\/95 { background-color: rgba(239, 246, 255, 0.95) !important; }
+                .toast-item.text-red-800 { color: #991b1b !important; }
+                .toast-item.border-red-100 { border-color: #fecaca !important; }
+                .toast-item.bg-red-50\/95 { background-color: rgba(254, 242, 242, 0.95) !important; }
+                .toast-item.text-amber-800 { color: #92400e !important; }
+                .toast-item.border-amber-100 { border-color: #fde68a !important; }
+                .toast-item.bg-amber-50\/95 { background-color: rgba(255, 251, 235, 0.95) !important; }
+                .toast-item.backdrop-blur-sm { backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important; }
+                .toast-item .flex-1 { flex: 1 1 0% !important; }
+            `;
+            document.head.appendChild(styleElement);
+
+            // 3. Tự động tiêm toast-container vào body
+            function injectToastContainer() {
+                if (!document.getElementById('toast-container')) {
+                    const container = document.createElement('div');
+                    container.id = 'toast-container';
+                    container.className = 'flex flex-col gap-2';
+                    document.body.appendChild(container);
+                }
+            }
+
+            if (document.body) {
+                injectToastContainer();
+            } else {
+                window.addEventListener('DOMContentLoaded', injectToastContainer);
+            }
+
+            // 4. Định nghĩa hàm showToast mượt mà cao cấp
+            window.showToast = function(message, type = 'success') {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+
+                const toast = document.createElement('div');
+                
+                let bgClass = 'text-emerald-800 border-emerald-100 bg-emerald-50/95 backdrop-blur-sm';
+                let icon = '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>';
+                
+                if (type === 'info') {
+                    bgClass = 'text-blue-800 border-blue-100 bg-blue-50/95 backdrop-blur-sm';
+                    icon = '<i class="fa-solid fa-circle-info text-blue-500 text-lg"></i>';
+                } else if (type === 'error') {
+                    bgClass = 'text-red-800 border-red-100 bg-red-50/95 backdrop-blur-sm';
+                    icon = '<i class="fa-solid fa-circle-xmark text-red-500 text-lg"></i>';
+                } else if (type === 'warning') {
+                    bgClass = 'text-amber-800 border-amber-100 bg-amber-50/95 backdrop-blur-sm';
+                    icon = '<i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>';
+                }
+
+                toast.className = `toast-item flex items-center gap-3 px-4 py-3 rounded-2xl border text-xs font-semibold bg-white ${bgClass}`;
+                toast.innerHTML = `${icon} <span class="flex-1">${message}</span>`;
+                
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'scale(0.9) translateX(20px)';
+                    setTimeout(() => toast.remove(), 300);
+                }, 4000);
+            };
+
+            // 5. Ghi đè hàm alert() truyền thống
+            window.alert = function(message) {
+                if (!message) return;
+                const msgStr = String(message);
+                
+                // Phân loại màu thông báo dựa trên từ khóa
+                let type = 'info';
+                const msgLower = msgStr.toLowerCase();
+                if (msgLower.includes('thành công') || msgLower.includes('success') || msgLower.includes('hoàn tất') || msgLower.includes('đăng nhập thành công') || msgLower.includes('đăng ký thành công')) {
+                    type = 'success';
+                } else if (msgLower.includes('lỗi') || msgLower.includes('thất bại') || msgLower.includes('error') || msgLower.includes('hỏng') || msgLower.includes('không thể') || msgLower.includes('chưa') || msgLower.includes('không đúng') || msgLower.includes('không tìm thấy')) {
+                    type = 'error';
+                } else if (msgLower.includes('cảnh báo') || msgLower.includes('chú ý') || msgLower.includes('warning') || msgLower.includes('vui lòng') || msgLower.includes('yêu cầu') || msgLower.includes('hết hạn')) {
+                    type = 'warning';
+                }
+
+                window.showToast(msgStr, type);
+                console.log("CheckinX Smart Toast: Đã đánh chặn alert ->", msgStr);
+            };
+        })();
+    </script>
+
+</body>
+</html>
