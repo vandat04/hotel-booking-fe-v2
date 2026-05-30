@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tìm kiếm phòng - CheckinX</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5B30A6',
+                        primaryHover: '#4A238A',
+                        darkText: '#1F2937'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        #toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+        }
+
+        .toast {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col justify-between">
+
+    <!-- Container chứa thông báo Toast -->
+    <div id="toast-container" class="flex flex-col gap-2"></div>
+
+    <!-- Header / Thanh điều hướng -->
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <a href="customer-home.html" class="flex items-center gap-2 text-primary font-bold text-xl transition hover:opacity-90">
+                    <i class="fa-solid fa-square-poll-horizontal text-2xl"></i>
+                    <span>CheckinX</span>
+                </a>
+                <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+                    <a href="customer-home.html" class="hover:text-primary transition-colors">Trang chủ</a>
+                    <a href="#" class="text-primary font-semibold">Phòng</a>
+                    <a href="#" class="hover:text-primary transition-colors">Đặt phòng</a>
+                    <a href="#" class="hover:text-primary transition-colors">Hỗ trợ</a>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Notification Bell Container -->
+                <div class="relative">
+                    <button id="notification-btn" class="text-gray-500 hover:text-primary relative transition-colors focus:outline-none py-1">
+                        <i class="fa-regular fa-bell text-xl"></i>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full hidden"></span>
+                    </button>
+                    
+                    <!-- Notification Dropdown -->
+                    <div id="notification-dropdown" class="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-100 hidden z-50 overflow-hidden">
+                        <div class="p-4 border-b border-gray-50 flex items-center justify-between">
+                            <h4 class="font-extrabold text-gray-900 text-sm tracking-tight flex items-center gap-1.5">
+                                <i class="fa-solid fa-bell text-primary"></i> Thông báo của bạn
+                            </h4>
+                            <span id="unread-count-text" class="text-[10px] bg-purple-100 text-primary font-bold px-2 py-0.5 rounded-full uppercase">0 mới</span>
+                        </div>
+                        <div id="notification-list" class="max-h-[360px] overflow-y-auto divide-y divide-gray-50 scrollbar-thin">
+                            <!-- Render danh sách động -->
+                        </div>
+                    </div>
+                </div>
+
+
+                <div id="auth-zone" class="flex items-center pl-2">
+                    <div class="animate-pulse bg-gray-200 h-8 w-8 rounded-full"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full space-y-8">
+        
+        <!-- Đường dẫn Breadcrumb & Tiêu đề -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                    <a href="customer-home.html" class="hover:text-primary transition-colors">Trang chủ</a>
+                    <i class="fa-solid fa-angle-right text-[10px]"></i>
+                    <span class="text-gray-600 font-medium">Tìm phòng</span>
+                </div>
+                <h1 class="text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Kết Quả Tìm Kiếm Phòng</h1>
+            </div>
+            
+            <button onclick="resetFilters()" class="text-xs text-primary hover:underline font-bold flex items-center gap-1.5 self-start md:self-auto bg-purple-50 px-3 py-2 rounded-xl transition">
+                <i class="fa-solid fa-rotate-left"></i> Khôi phục mặc định
+            </button>
+        </div>
+
+        <!-- Bộ lọc ngang tinh gọn (Đồng bộ 100% trường dữ liệu với customer-home.html) -->
+        <section class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
+            <form id="search-filter-form" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
+                <!-- Loại hình đặt -->
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Loại hình đặt</label>
+                    <div class="relative">
+                        <select id="filter-booking-type" name="bookingType"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer">
+                            <option value="DAILY">Theo ngày</option>
+                            <option value="HOURLY">Theo giờ</option>
+                        </select>
+                        <i class="fa-solid fa-calendar-days absolute left-3 top-3 text-gray-400 text-xs"></i>
+                        <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-gray-400 text-[10px] pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <!-- Số người lớn -->
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Số người lớn</label>
+                    <div class="relative">
+                        <input type="number" id="filter-adults" name="adults" min="1" max="10" value="2"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                        <i class="fa-solid fa-user absolute left-3 top-3 text-gray-400 text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Ngày Check-in -->
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Ngày Check-in</label>
+                    <div class="relative">
+                        <input type="datetime-local" id="filter-checkin" name="checkIn"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-gray-700">
+                        <i class="fa-solid fa-plane-arrival absolute left-3 top-3 text-gray-400 text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Ngày Check-out -->
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Ngày Check-out</label>
+                    <div class="relative">
+                        <input type="datetime-local" id="filter-checkout" name="checkOut"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-gray-700">
+                        <i class="fa-solid fa-plane-departure absolute left-3 top-3 text-gray-400 text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Giá tối thiểu -->
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Giá tối thiểu (VNĐ)</label>
+                    <div class="relative">
+                        <input type="number" id="filter-min-price" name="minPrice" placeholder="Ví dụ: 300000" step="50000"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                        <span class="absolute left-3.5 top-2.5 text-gray-400 text-xs font-bold">₫</span>
+                    </div>
+                </div>
+
+                <!-- Giá tối đa -->
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Giá tối đa (VNĐ)</label>
+                    <div class="relative">
+                        <input type="number" id="filter-max-price" name="maxPrice" placeholder="Ví dụ: 1500000" step="50000"
+                            class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                        <span class="absolute left-3.5 top-2.5 text-gray-400 text-xs font-bold">₫</span>
+                    </div>
+                </div>
+
+                <!-- Nút tìm kiếm -->
+                <button type="submit"
+                    class="w-full lg:col-span-2 bg-primary hover:bg-primaryHover text-white font-medium py-2 rounded-xl transition shadow-md shadow-primary/20 text-sm flex items-center justify-center gap-2 h-[38px]">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i> Tìm lại phòng
+                </button>
+            </form>
+        </section>
+
+        <!-- Trạng thái kết quả & Danh sách phòng -->
+        <section class="space-y-6">
+            <!-- Tóm tắt kết quả tìm kiếm -->
+            <div id="results-header" class="flex items-center justify-between bg-white px-6 py-3.5 rounded-2xl border border-gray-100 shadow-sm">
+                <h2 id="search-summary-text" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Đang quét phòng phù hợp...</h2>
+                <div class="text-xs font-medium text-gray-400">
+                    Sắp xếp: <span class="text-primary font-bold">Mặc định</span>
+                </div>
+            </div>
+
+            <!-- Danh sách phòng (Mở rộng toàn màn hình dạng 3 cột cực đẹp) -->
+            <div id="search-rooms-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Skeletons khi tải trang -->
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm animate-pulse h-[400px]"></div>
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm animate-pulse h-[400px]"></div>
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm animate-pulse h-[400px]"></div>
+            </div>
+
+            <!-- Phân trang ở phía dưới -->
+            <div id="pagination" class="flex justify-center pt-4"></div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 text-sm text-gray-600 pt-12 pb-6">
+        <div class="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+            <div class="md:col-span-4 space-y-4">
+                <div class="flex items-center gap-2 text-primary font-bold text-xl">
+                    <i class="fa-solid fa-square-poll-horizontal text-2xl"></i>
+                    <span>CheckinX</span>
+                </div>
+                <p class="text-xs text-gray-500 leading-relaxed">Ứng dụng đặt phòng mang lại sự tiện lợi và bảo mật tối đa cho người dùng hiện đại.</p>
+            </div>
+            <div class="md:col-span-2 space-y-3">
+                <h5 class="font-bold text-gray-900 text-xs uppercase tracking-wider">Về chúng tôi</h5>
+                <ul class="space-y-2 text-xs text-gray-500">
+                    <li><a href="#" class="hover:text-primary transition-colors">Giới thiệu</a></li>
+                    <li><a href="#" class="hover:text-primary transition-colors">Tuyển dụng</a></li>
+                </ul>
+            </div>
+            <div class="md:col-span-3 space-y-3">
+                <h5 class="font-bold text-gray-900 text-xs uppercase tracking-wider">Pháp lý</h5>
+                <ul class="space-y-2 text-xs text-gray-500">
+                    <li><a href="#" class="hover:text-primary transition-colors">Chính sách bảo mật</a></li>
+                </ul>
+            </div>
+            <div class="md:col-span-3 space-y-3">
+                <h5 class="font-bold text-gray-900 text-xs uppercase tracking-wider">Hỗ trợ</h5>
+                <ul class="space-y-2 text-xs text-gray-500">
+                    <li><i class="fa-regular fa-envelope mr-1"></i> support@checkinx.vn</li>
+                    <li><i class="fa-solid fa-phone mr-1"></i> 1900 6789</li>
+                </ul>
+            </div>
+        </div>
+        <div class="text-center text-xs text-gray-400 pt-6 border-t border-gray-100">
+            © 2026 CheckinX. Đã đăng ký bản quyền.
+        </div>
+    </footer>
+
+    <script>
+        const BASE_URL = 'http://localhost:8080/api';
+
+        // Hàm định dạng giá tiền tệ sang dạng dễ đọc kiểu Việt Nam (e.g., 400.000đ)
+        function formatMoney(amount) {
+            if (!amount || amount === 0) return 'N/A';
+            return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
+        }
+
+        // Hiện thông báo nổi (Toast)
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'text-emerald-800 border-emerald-100 bg-emerald-50';
+            let icon = '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>';
+            
+            if (type === 'info') {
+                bgClass = 'text-blue-800 border-blue-100 bg-blue-50';
+                icon = '<i class="fa-solid fa-circle-info text-blue-500 text-lg"></i>';
+            } else if (type === 'error') {
+                bgClass = 'text-red-800 border-red-100 bg-red-50';
+                icon = '<i class="fa-solid fa-circle-xmark text-red-500 text-lg"></i>';
+            } else if (type === 'warning') {
+                bgClass = 'text-amber-800 border-amber-100 bg-amber-50';
+                icon = '<i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>';
+            }
+
+            toast.className = `toast flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition min-w-[300px] bg-white ${bgClass}`;
+            toast.innerHTML = `${icon} <span class="flex-1">${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'scale(0.9)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // --- 1. KIỂM TRA AUTHENTICATION (Đồng bộ với customer-home.html) ---
+        async function checkAuthStatus() {
+            const authZone = document.getElementById('auth-zone');
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            let token = urlParams.get('token');
+            
+            if (token) {
+                localStorage.setItem('token', token);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                token = localStorage.getItem('token');
+            }
+
+            if (!token) {
+                renderLoginButton();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}/customer/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const user = result.data || result;
+                    const avatarSrc = user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`;
+
+                    authZone.innerHTML = `
+                        <a href="customer-profile.html?token=${token}" class="flex items-center gap-2 cursor-pointer group" title="Xem hồ sơ cá nhân">
+                            <img src="${avatarSrc}" alt="${user.fullName}" 
+                                 class="w-8 h-8 rounded-full object-cover ring-2 ring-primary/20 group-hover:ring-primary transition-all" 
+                                 onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}'">
+                            <span class="text-xs font-semibold text-gray-700 group-hover:text-primary hidden sm:inline transition-colors">
+                                ${user.fullName}
+                            </span>
+                        </a>
+                    `;
+                } else {
+                    renderLoginButton();
+                }
+            } catch (error) {
+                console.error("Lỗi khi kết nối /customer/me:", error);
+                renderLoginButton();
+            }
+        }
+
+        function renderLoginButton() {
+            document.getElementById('auth-zone').innerHTML = `
+                <a href="login.html" class="text-sm font-medium text-gray-600 hover:text-primary flex items-center gap-2 transition-colors">
+                    <i class="fa-regular fa-user-circle text-2xl text-gray-400"></i> Đăng nhập
+                </a>
+            `;
+        }
+
+        // --- 2. THỰC HIỆN TÌM KIẾM PHÒNG GỌI API (GET /hotel/room-types/search) ---
+        async function fetchSearchResults(params) {
+            const container = document.getElementById('search-rooms-container');
+            const summaryText = document.getElementById('search-summary-text');
+            
+            // Hiện skeleton loaders
+            container.innerHTML = `
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm animate-pulse h-[400px]"></div>
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm animate-pulse h-[400px]"></div>
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm animate-pulse h-[400px]"></div>
+            `;
+
+            // Chỉ gửi lên các trường mà API GuestSearchRoomRequest hỗ trợ
+            const apiParams = new URLSearchParams();
+            apiParams.set('bookingType', params.get('bookingType') || 'DAILY');
+            if (params.get('adults')) apiParams.set('adults', params.get('adults'));
+            if (params.get('minPrice')) apiParams.set('minPrice', params.get('minPrice'));
+            if (params.get('maxPrice')) apiParams.set('maxPrice', params.get('maxPrice'));
+            if (params.get('checkIn')) apiParams.set('checkIn', params.get('checkIn'));
+            if (params.get('checkOut')) apiParams.set('checkOut', params.get('checkOut'));
+            apiParams.set('page', params.get('page') || '0');
+            apiParams.set('size', params.get('size') || '6');
+
+            try {
+                const response = await fetch(`${BASE_URL}/hotel/room-types/search?${apiParams.toString()}`);
+                if (!response.ok) {
+                    throw new Error("Lỗi API Backend");
+                }
+
+                const result = await response.json();
+                const pageData = result.data || {};
+                const roomList = pageData.content || [];
+                const totalElements = pageData.totalElements || roomList.length;
+
+                summaryText.innerText = `TÌM THẤY ${totalElements} KẾT QUẢ PHÙ HỢP TIÊU CHÍ CỦA BẠN`;
+                
+                renderRoomCards(roomList, params.get('bookingType') || 'DAILY');
+                renderPagination(pageData, params);
+
+            } catch (error) {
+                console.error("Lỗi khi tìm kiếm:", error);
+                summaryText.innerText = "KHÔNG THỂ LẤY DANH SÁCH PHÒNG";
+                showToast("Lỗi kết nối API Server khi tìm kiếm!", "error");
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-red-500 text-sm font-medium bg-red-50/50 rounded-2xl border border-red-100 flex flex-col items-center justify-center space-y-2">
+                        <i class="fa-solid fa-circle-exclamation text-3xl"></i>
+                        <span>Không thể kết nối hoặc lấy dữ liệu tìm kiếm phòng từ API Server!</span>
+                        <button onclick="window.location.reload()" class="bg-red-500 text-white px-4 py-2 rounded-xl text-xs mt-2 font-bold shadow-md hover:bg-red-600 transition">
+                            Thử lại
+                        </button>
+                    </div>`;
+            }
+        }
+
+        // --- 3. HIỂN THỊ DANH SÁCH THẺ PHÒNG LÊN GIAO DIỆN (Đồng bộ 100% với customer-home.html) ---
+        function renderRoomCards(roomList, currentBookingType) {
+            const container = document.getElementById('search-rooms-container');
+
+            if (!roomList || roomList.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm flex flex-col items-center justify-center space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-purple-50 text-primary flex items-center justify-center text-2xl shadow-inner">
+                            <i class="fa-solid fa-face-frown-open"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <h3 class="text-sm font-bold text-gray-900">Không tìm thấy phòng phù hợp</h3>
+                            <p class="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">Hãy thử thay đổi số lượng khách hoặc khoảng giá lọc để tìm nhiều kết quả hơn.</p>
+                        </div>
+                        <button onclick="resetFilters()" class="bg-primary hover:bg-primaryHover text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition shadow-md shadow-primary/10">
+                            Xóa tất cả bộ lọc
+                        </button>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = roomList.map(room => {
+                const roomName = room.roomTypeName || room.name || 'Loại phòng';
+                const roomId = room.roomTypeId || room.id || 0;
+                const thumbnail = room.thumbnail || room.thumbnailUrl || 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80';
+                const description = room.description || 'Không gian nghỉ dưỡng lý tưởng được trang bị đầy đủ tiện nghi hiện đại và cao cấp.';
+                const isHourly = currentBookingType === 'HOURLY';
+
+                return `
+                    <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
+                        <!-- Vùng ảnh phòng -->
+                        <div class="relative h-48 bg-gray-100 overflow-hidden">
+                            <img src="${thumbnail}" alt="${roomName}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80'">
+                            <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-primary font-bold text-xs px-2.5 py-1 rounded-lg border border-purple-100 shadow-sm uppercase tracking-wide">
+                                ${roomName}
+                            </span>
+                        </div>
+                        
+                        <!-- Vùng thông tin phòng -->
+                        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-4 text-[11px] font-medium text-gray-400">
+                                    <span><i class="fa-solid fa-maximize text-primary/70 mr-1"></i>${room.roomSizeM2 || 0} m²</span>
+                                    <span><i class="fa-solid fa-bed text-primary/70 mr-1"></i>${room.bedCount || 0} ${room.bedType || 'SINGLE'}</span>
+                                    <span><i class="fa-solid fa-user-group text-primary/70 mr-1"></i>Tối đa ${room.maxAdults || 0} Lớn</span>
+                                </div>
+                                <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">
+                                    ${description}
+                                </p>
+                            </div>
+
+                            <!-- Vùng hiển thị giá (Có highlight loại hình đặt đã chọn) -->
+                            <div class="pt-3 border-t border-gray-50 grid grid-cols-2 gap-2 bg-gray-50/50 p-2 rounded-xl">
+                                <div class="${!isHourly ? 'bg-white shadow-sm ring-1 ring-purple-100 rounded-lg p-1.5' : 'p-1.5'} text-center transition">
+                                    <span class="block text-[9px] text-gray-400 uppercase font-semibold">Theo Ngày</span>
+                                    <span class="text-xs font-bold text-gray-900">${room.pricePerDay > 0 ? formatMoney(room.pricePerDay) : 'Hết phòng'}</span>
+                                </div>
+                                <div class="border-l border-gray-200 ${isHourly ? 'bg-white shadow-sm ring-1 ring-purple-100 rounded-lg p-1.5' : 'p-1.5'} text-center pl-3 transition">
+                                    <span class="block text-[9px] text-gray-400 uppercase font-semibold">Theo Giờ</span>
+                                    <span class="text-xs font-bold text-primary">${room.pricePerHour > 0 ? formatMoney(room.pricePerHour) + '<span class="text-[9px] font-normal text-gray-400">/h</span>' : 'N/A'}</span>
+                                </div>
+                            </div>
+
+                            <!-- Hành động đặt phòng -->
+                            <button onclick="bookRoom(${roomId})" class="w-full bg-gray-900 hover:bg-primary text-white text-xs font-semibold py-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-1">
+                                Đặt phòng ngay <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- 4. PHÂN TRANG ĐỘNG (Dùng pushState để điều hướng mượt mà không load lại trang) ---
+        function renderPagination(pageData, currentParams) {
+            const paginationContainer = document.getElementById('pagination');
+            if (!pageData || pageData.totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+
+            const currentPage = pageData.page || 0;
+            const totalPages = pageData.totalPages;
+            
+            let html = `
+                <div class="flex items-center justify-center gap-2 mt-8">
+                    <button onclick="changePage(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''} 
+                        class="px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition flex items-center gap-1">
+                        <i class="fa-solid fa-angle-left"></i> Trước
+                    </button>
+            `;
+
+            for (let i = 0; i < totalPages; i++) {
+                if (i === 0 || i === totalPages - 1 || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    html += `
+                        <button onclick="changePage(${i})" 
+                            class="w-9 h-9 rounded-xl text-xs font-bold transition flex items-center justify-center ${i === currentPage ? 'bg-primary text-white shadow-md shadow-primary/20' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}">
+                            ${i + 1}
+                        </button>
+                    `;
+                } else if (i === 1 || i === totalPages - 2) {
+                    html += `<span class="text-gray-400 text-xs px-1">...</span>`;
+                }
+            }
+
+            html += `
+                    <button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages - 1 ? 'disabled' : ''} 
+                        class="px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition flex items-center gap-1">
+                        Sau <i class="fa-solid fa-angle-right"></i>
+                    </button>
+                </div>
+            `;
+
+            paginationContainer.innerHTML = html;
+        }
+
+        // Thay đổi trang
+        function changePage(targetPage) {
+            const form = document.getElementById('search-filter-form');
+            const params = new URLSearchParams(new FormData(form));
+            params.set('page', targetPage);
+            params.set('size', 6);
+            
+            // Làm sạch tham số rỗng
+            for (const [key, value] of [...params.entries()]) {
+                if (!value) {
+                    params.delete(key);
+                }
+            }
+
+            window.history.pushState({}, '', 'search.html?' + params.toString());
+            fetchSearchResults(params);
+            
+            // Cuộn smoothly lên đầu trang kết quả
+            document.getElementById('results-header').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Sự kiện Submit form bộ lọc ngang
+        document.getElementById('search-filter-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            
+            const params = new URLSearchParams(new FormData(this));
+            params.set('page', '0');
+            params.set('size', '6');
+
+            // Làm sạch tham số rỗng
+            for (const [key, value] of [...params.entries()]) {
+                if (!value) {
+                    params.delete(key);
+                }
+            }
+
+            window.history.pushState({}, '', 'search.html?' + params.toString());
+            fetchSearchResults(params);
+            
+            showToast("Đã cập nhật bộ lọc thành công!", "success");
+        });
+
+        // Hàm Reset bộ lọc
+        function resetFilters() {
+            document.getElementById('filter-booking-type').value = 'DAILY';
+            document.getElementById('filter-adults').value = '2';
+            document.getElementById('filter-min-price').value = '';
+            document.getElementById('filter-max-price').value = '';
+            document.getElementById('filter-checkin').value = '';
+            document.getElementById('filter-checkout').value = '';
+            
+            const params = new URLSearchParams({
+                bookingType: 'DAILY',
+                adults: '2',
+                page: '0',
+                size: '6'
+            });
+
+            window.history.pushState({}, '', 'search.html?' + params.toString());
+            fetchSearchResults(params);
+            showToast("Đã khôi phục bộ lọc mặc định!", "success");
+        }
+
+        // Điều hướng sang chi tiết phòng
+        function bookRoom(roomId) {
+            const bookingType = document.getElementById('filter-booking-type').value;
+            localStorage.setItem('booking_bookingType', bookingType);
+            window.location.href = `room-type-detail.html?roomTypeId=${roomId}`;
+        }
+
+        // --- 5. HỆ THỐNG THÔNG BÁO (GET /customer/notifications) ---
+        function formatNotificationTime(isoStr) {
+            try {
+                const date = new Date(isoStr);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMins / 60);
+                
+                if (diffMins < 1) return 'Vừa xong';
+                if (diffMins < 60) return `${diffMins} phút trước`;
+                if (diffHours < 24) return `${diffHours} giờ trước`;
+                
+                return date.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+            } catch (e) {
+                return isoStr;
+            }
+        }
+
+        async function updateNotificationBadge() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            try {
+                const response = await fetch(`${BASE_URL}/customer/notifications?page=0&size=20`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const res = await response.json();
+                    const content = res.data?.content || [];
+                    const unreads = content.filter(n => !n.isRead);
+                    const badge = document.getElementById('notification-badge');
+                    const unreadCountText = document.getElementById('unread-count-text');
+                    
+                    if (badge) {
+                        if (unreads.length > 0) {
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
+                        }
+                    }
+                    if (unreadCountText) {
+                        unreadCountText.innerText = `${unreads.length} mới`;
+                    }
+                }
+            } catch (err) {
+                console.error("Lỗi cập nhật badge thông báo:", err);
+            }
+        }
+
+        async function loadNotifications() {
+            const token = localStorage.getItem('token');
+            const list = document.getElementById('notification-list');
+            if (!list) return;
+
+            list.innerHTML = `
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${BASE_URL}/customer/notifications?page=0&size=15`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const res = await response.json();
+                    const content = res.data?.content || [];
+                    renderNotifications(content);
+                } else {
+                    list.innerHTML = `<div class="p-4 text-center text-xs text-gray-400">Không thể tải thông báo</div>`;
+                }
+            } catch (err) {
+                console.error("Lỗi tải danh sách thông báo:", err);
+                list.innerHTML = `<div class="p-4 text-center text-xs text-red-500">Đã xảy ra lỗi kết nối</div>`;
+            }
+        }
+
+        function renderNotifications(items) {
+            const list = document.getElementById('notification-list');
+            if (!list) return;
+
+            if (!items || items.length === 0) {
+                list.innerHTML = `
+                    <div class="p-8 text-center text-gray-400 space-y-2">
+                        <i class="fa-regular fa-bell-slash text-3xl text-gray-200"></i>
+                        <p class="text-xs">Bạn chưa có thông báo nào</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = items.map(item => {
+                let icon = '<i class="fa-solid fa-circle-info text-blue-500"></i>';
+                if (item.notificationType?.includes('CONFIRMED') || item.notificationType?.includes('SUCCESS')) {
+                    icon = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+                } else if (item.notificationType?.includes('CANCEL') || item.notificationType?.includes('REFUND')) {
+                    icon = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+                }
+
+                const dateStr = item.createdAt ? formatNotificationTime(item.createdAt) : '';
+                const unreadBg = !item.isRead ? 'bg-purple-50/40 hover:bg-purple-50/80' : 'hover:bg-gray-50';
+                const unreadDot = !item.isRead ? '<span class="w-1.5 h-1.5 bg-purple-600 rounded-full self-start mt-1.5 flex-shrink-0"></span>' : '';
+
+                // Chuyển hướng khi click thông báo có bookingId
+                const clickAction = item.bookingId 
+                    ? `onclick="window.location.href='customer-profile.html?bookingId=${item.bookingId}'"`
+                    : '';
+
+                return `
+                    <div ${clickAction} class="p-4 flex items-start gap-3 cursor-pointer transition-colors duration-200 ${unreadBg}">
+                        <div class="text-base mt-0.5 flex-shrink-0">${icon}</div>
+                        <div class="flex-1 space-y-0.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <h5 class="text-xs font-bold text-gray-900 line-clamp-1">${item.title}</h5>
+                                ${unreadDot}
+                            </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed">${item.message}</p>
+                            <span class="text-[9px] text-gray-400 block pt-0.5">${dateStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function initNotificationSystem() {
+            const token = localStorage.getItem('token');
+            const dropdown = document.getElementById('notification-dropdown');
+            const btn = document.getElementById('notification-btn');
+
+            if (!token) return;
+
+            if (btn) {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                    if (!dropdown.classList.contains('hidden')) {
+                        loadNotifications();
+                    }
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                if (dropdown && !dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+
+            await updateNotificationBadge();
+        }
+
+        // --- KHỞI CHẠY KHI TẢI TRANG ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Kiểm tra Auth status
+            checkAuthStatus();
+
+            // Đọc các tham số từ URL
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Đổ dữ liệu vào các thẻ input
+            if (urlParams.get('bookingType')) document.getElementById('filter-booking-type').value = urlParams.get('bookingType');
+            if (urlParams.get('adults')) document.getElementById('filter-adults').value = urlParams.get('adults');
+            if (urlParams.get('minPrice')) document.getElementById('filter-min-price').value = urlParams.get('minPrice');
+            if (urlParams.get('maxPrice')) document.getElementById('filter-max-price').value = urlParams.get('maxPrice');
+            if (urlParams.get('checkIn')) document.getElementById('filter-checkin').value = urlParams.get('checkIn');
+            if (urlParams.get('checkOut')) document.getElementById('filter-checkout').value = urlParams.get('checkOut');
+
+            // Chạy cuộc tìm kiếm đầu tiên
+            fetchSearchResults(urlParams);
+            await initNotificationSystem();
+        });
+    </script>
+</body>
+
+</html>
